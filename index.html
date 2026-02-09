@@ -1878,8 +1878,11 @@
                 
                 // Calcular % de privación por dimensión
                 const calcPct = (d) => {
+                    if (!d || !d.indicadores) return 0;
                     const total = Object.keys(d.indicadores).length;
-                    return total === 0 ? 0 : (d.num_privados / total) * 100;
+                    if (total === 0) return 0;
+                    const privados = d.num_privados || 0;
+                    return (privados / total) * 100;
                 };
 
                 const dataPrivacion = [
@@ -1889,6 +1892,15 @@
                     calcPct(dim.vivienda),
                     calcPct(dim.servicios)
                 ];
+
+                // Debug: verificar datos
+                console.log('Datos del radar:', {
+                    salud: calcPct(dim.salud),
+                    educacion: calcPct(dim.educacion),
+                    empleo: calcPct(dim.empleo),
+                    vivienda: calcPct(dim.vivienda),
+                    servicios: calcPct(dim.servicios)
+                });
 
                 window.radarChartInstance = new Chart(ctx, {
                     type: 'radar',
@@ -1916,6 +1928,7 @@
                             r: {
                                 beginAtZero: true,
                                 max: 100,
+                                min: 0,
                                 ticks: {
                                     stepSize: 25,
                                     callback: (value) => value + '%',
@@ -1954,7 +1967,13 @@
                                 titleFont: { size: 14, weight: 'bold' },
                                 bodyFont: { size: 13 },
                                 callbacks: {
-                                    label: (ctx) => ctx.parsed.r.toFixed(1) + '% de privación'
+                                    title: (tooltipItems) => {
+                                        return tooltipItems[0].label;
+                                    },
+                                    label: (context) => {
+                                        const value = context.parsed.r;
+                                        return `Privación: ${value.toFixed(1)}%`;
+                                    }
                                 }
                             }
                         }
@@ -2714,13 +2733,13 @@
                                         <>
                                             <p>Su hogar se encuentra en situación de <strong style={{ color: "var(--color-primary)" }}>pobreza multidimensional</strong> según el IPM-GT, con {(resultados.porcentajePrivacion).toFixed(1)}% de privaciones ponderadas (el umbral es 30%).</p>
                                             <p>Esto significa que su hogar enfrenta carencias simultáneas en {Object.values(resultados.resumenDimensiones).filter(d => d.privado).length} de las 5 dimensiones evaluadas.</p>
-                                            <p>Identifica estas áreas para aumentar el bienestar de su hogar.</p>
+                                            <p>Identifique estas áreas para aumentar el bienestar de su hogar.</p>
                                         </>
                                     ) : (
                                         <>
                                             <p>Su hogar <strong style={{ color: "var(--color-success)" }}>no se encuentra en pobreza multidimensional</strong> según el IPM-GT, con {(resultados.porcentajePrivacion).toFixed(1)}% de privaciones ponderadas (por debajo del umbral de 30%).</p>
                                             <p>Sin embargo, su hogar presenta privaciones en {Object.values(resultados.indicadores).filter(v => v).length} indicadores, distribuidos en {Object.values(resultados.resumenDimensiones).filter(d => d.privado).length} dimensiones.</p>
-                                            <p>Identifica estas áreas para aumentar el bienestar de su hogar.</p>
+                                            <p>Identifique estas áreas para aumentar el bienestar de su hogar.</p>
                                         </>
                                     )}
                                 </div>
