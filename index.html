@@ -1,0 +1,2358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora IPM Personal - Guatemala</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Fuentes distintivas -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Work+Sans:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Paleta de colores inspirada en textiles guatemaltecos */
+            --color-primary: #C41E3A;
+            --color-secondary: #1A5490;
+            --color-accent: #F4A460;
+            --color-success: #2D5016;
+            --color-warning: #FF6B35;
+            --color-bg: #FAF8F3;
+            --color-surface: #FFFFFF;
+            --color-text: #1A1A1A;
+            --color-text-muted: #6B6B6B;
+            --color-border: #E0DDD5;
+            
+            /* Espaciado */
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2.5rem;
+            --spacing-xl: 4rem;
+            
+            /* Tipografía */
+            --font-display: 'DM Serif Display', serif;
+            --font-body: 'Work Sans', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-body);
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        /* Fondo decorativo con patrón geométrico */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(45deg, var(--color-primary) 0.5px, transparent 0.5px),
+                linear-gradient(-45deg, var(--color-secondary) 0.5px, transparent 0.5px);
+            background-size: 40px 40px;
+            opacity: 0.03;
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-lg) var(--spacing-md);
+            min-height: 100vh;
+        }
+        
+        /* Header con diseño asimétrico */
+        .header {
+            margin-bottom: var(--spacing-xl);
+            position: relative;
+        }
+        
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -1rem;
+            left: 0;
+            width: 120px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+        }
+        
+        .header-title {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            color: var(--color-primary);
+            font-weight: 400;
+            line-height: 1.1;
+            margin-bottom: var(--spacing-xs);
+            letter-spacing: -0.02em;
+        }
+        
+        .header-subtitle {
+            font-size: 1.125rem;
+            color: var(--color-text-muted);
+            font-weight: 300;
+            max-width: 600px;
+        }
+        
+        /* Progress bar con diseño único */
+        .progress-container {
+            margin-bottom: var(--spacing-lg);
+            background: var(--color-surface);
+            border-radius: 16px;
+            padding: var(--spacing-md);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            border: 1px solid var(--color-border);
+        }
+        
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-sm);
+            gap: 0.5rem;
+        }
+        
+        .progress-step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+        
+        .progress-step-number {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--color-border);
+            color: var(--color-text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto var(--spacing-xs);
+            font-weight: 600;
+            font-size: 0.875rem;
+            font-family: var(--font-mono);
+            transition: all 0.3s ease;
+        }
+        
+        .progress-step.active .progress-step-number {
+            background: var(--color-primary);
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(196, 30, 58, 0.3);
+        }
+        
+        .progress-step.completed .progress-step-number {
+            background: var(--color-success);
+            color: white;
+        }
+        
+        .progress-step-label {
+            font-size: 0.75rem;
+            color: var(--color-text-muted);
+            font-weight: 500;
+        }
+        
+        .progress-step.active .progress-step-label {
+            color: var(--color-primary);
+            font-weight: 600;
+        }
+        
+        /* Card containers */
+        .card {
+            background: var(--color-surface);
+            border-radius: 20px;
+            padding: var(--spacing-lg);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            border: 1px solid var(--color-border);
+            margin-bottom: var(--spacing-md);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--color-primary), var(--color-accent));
+        }
+        
+        .card-title {
+            font-family: var(--font-display);
+            font-size: 1.75rem;
+            color: var(--color-text);
+            margin-bottom: var(--spacing-md);
+            font-weight: 400;
+        }
+        
+        .card-description {
+            color: var(--color-text-muted);
+            margin-bottom: var(--spacing-lg);
+            font-size: 0.95rem;
+        }
+        
+        /* Form elements con diseño refinado */
+        .form-group {
+            margin-bottom: var(--spacing-md);
+            animation: slideIn 0.4s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: var(--spacing-xs);
+            font-weight: 600;
+            color: var(--color-text);
+            font-size: 0.95rem;
+        }
+        
+        .form-help {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+            margin-top: 0.25rem;
+            font-style: italic;
+        }
+        
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid var(--color-border);
+            border-radius: 12px;
+            font-size: 1rem;
+            font-family: var(--font-body);
+            background: var(--color-surface);
+            transition: all 0.3s ease;
+            color: var(--color-text);
+        }
+        
+        .form-input:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 4px rgba(196, 30, 58, 0.1);
+        }
+        
+        .form-radio-group {
+            display: flex;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+        }
+        
+        .form-radio-option {
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        .form-radio-label {
+            display: block;
+            padding: 0.875rem 1.25rem;
+            border: 2px solid var(--color-border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-weight: 500;
+            background: var(--color-surface);
+        }
+        
+        .form-radio-input {
+            display: none;
+        }
+        
+        .form-radio-input:checked + .form-radio-label {
+            border-color: var(--color-primary);
+            background: var(--color-primary);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(196, 30, 58, 0.3);
+        }
+        
+        /* Buttons con personalidad */
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: var(--font-body);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+        
+        .btn-primary {
+            background: var(--color-primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #A01828;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(196, 30, 58, 0.4);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--color-primary);
+            border: 2px solid var(--color-primary);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--color-primary);
+            color: white;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-lg);
+            flex-wrap: wrap;
+        }
+        
+        /* Person cards en grid */
+        .persons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .person-card {
+            background: linear-gradient(135deg, #FFFFFF 0%, #FAF8F3 100%);
+            border: 2px solid var(--color-border);
+            border-radius: 16px;
+            padding: var(--spacing-md);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .person-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        }
+        
+        .person-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .person-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--color-primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+        }
+        
+        .person-info {
+            flex: 1;
+            margin-left: var(--spacing-sm);
+        }
+        
+        .person-name {
+            font-weight: 600;
+            color: var(--color-text);
+            margin-bottom: 0.25rem;
+        }
+        
+        .person-details {
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+        }
+        
+        .btn-delete {
+            background: transparent;
+            border: none;
+            color: var(--color-warning);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 1.25rem;
+            line-height: 1;
+        }
+        
+        .btn-delete:hover {
+            background: rgba(255, 107, 53, 0.1);
+        }
+        
+        /* Results dashboard */
+        .results-container {
+            animation: fadeIn 0.6s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .results-hero {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            color: white;
+            padding: var(--spacing-xl);
+            border-radius: 24px;
+            text-align: center;
+            margin-bottom: var(--spacing-lg);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .results-hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 300px;
+            height: 300px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+        
+        .ipm-score {
+            font-family: var(--font-display);
+            font-size: clamp(3rem, 10vw, 5rem);
+            font-weight: 400;
+            margin-bottom: var(--spacing-xs);
+            position: relative;
+        }
+        
+        .ipm-label {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            font-weight: 300;
+            font-family: var(--font-mono);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+        
+        .ipm-status {
+            display: inline-block;
+            margin-top: var(--spacing-md);
+            padding: 0.75rem 2rem;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1.125rem;
+            backdrop-filter: blur(10px);
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .metric-card {
+            background: var(--color-surface);
+            padding: var(--spacing-md);
+            border-radius: 16px;
+            border: 2px solid var(--color-border);
+        }
+        
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            color: var(--color-primary);
+            margin-bottom: 0.25rem;
+        }
+        
+        .metric-label {
+            color: var(--color-text-muted);
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        
+        .dimensions-list {
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .dimension-item {
+            background: var(--color-surface);
+            border: 2px solid var(--color-border);
+            border-radius: 16px;
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .dimension-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .dimension-name {
+            font-weight: 600;
+            font-size: 1.125rem;
+            color: var(--color-text);
+        }
+        
+        .dimension-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .dimension-status.privado {
+            background: rgba(196, 30, 58, 0.1);
+            color: var(--color-primary);
+        }
+        
+        .dimension-status.no-privado {
+            background: rgba(45, 80, 22, 0.1);
+            color: var(--color-success);
+        }
+        
+        .indicators-list {
+            display: grid;
+            gap: 0.5rem;
+            padding-left: var(--spacing-md);
+        }
+        
+        .indicator-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: 0.75rem;
+            background: var(--color-bg);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .indicator-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+        }
+        
+        .indicator-icon.privado {
+            background: var(--color-primary);
+            color: white;
+        }
+        
+        .indicator-icon.no-privado {
+            background: var(--color-success);
+            color: white;
+        }
+        
+        /* Chart container */
+        .chart-container {
+            background: var(--color-surface);
+            padding: var(--spacing-lg);
+            border-radius: 20px;
+            border: 2px solid var(--color-border);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .chart-title {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+        
+        /* Loading state */
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            gap: var(--spacing-md);
+        }
+        
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--color-border);
+            border-top-color: var(--color-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .app-container {
+                padding: var(--spacing-md) var(--spacing-sm);
+            }
+            
+            .progress-steps {
+                overflow-x: auto;
+                scrollbar-width: thin;
+            }
+            
+            .form-radio-group {
+                flex-direction: column;
+            }
+            
+            .form-radio-option {
+                min-width: 100%;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Accessibility */
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0,0,0,0);
+            white-space: nowrap;
+            border: 0;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--color-bg);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-border);
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--color-text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // DATOS GEOGRÁFICOS DE GUATEMALA
+        const DATOS_GUATEMALA = {
+            "departamentos": [
+                {"id": 1, "nombre": "Guatemala", "region": "Central", "municipios": ["Guatemala", "Santa Catarina Pinula", "San José Pinula", "San José del Golfo", "Palencia", "Chinautla", "San Pedro Ayampuc", "Mixco", "San Pedro Sacatepéquez", "San Juan Sacatepéquez", "San Raymundo", "Chuarrancho", "Fraijanes", "Amatitlán", "Villa Nueva", "Villa Canales", "San Miguel Petapa"]},
+                {"id": 2, "nombre": "El Progreso", "region": "Oriente", "municipios": ["Guastatoya", "Morazán", "San Agustín Acasaguastlán", "San Cristóbal Acasaguastlán", "El Jícaro", "Sansare", "Sanarate", "San Antonio La Paz"]},
+                {"id": 3, "nombre": "Sacatepéquez", "region": "Central", "municipios": ["Antigua Guatemala", "Jocotenango", "Pastores", "Sumpango", "Santo Domingo Xenacoj", "Santiago Sacatepéquez", "San Bartolomé Milpas Altas", "San Lucas Sacatepéquez", "Santa Lucía Milpas Altas", "Magdalena Milpas Altas", "Santa María de Jesús", "Ciudad Vieja", "San Miguel Dueñas", "Alotenango", "San Antonio Aguas Calientes", "Santa Catarina Barahona"]},
+                {"id": 4, "nombre": "Chimaltenango", "region": "Central", "municipios": ["Chimaltenango", "San José Poaquil", "San Martín Jilotepeque", "San Juan Comalapa", "Santa Apolonia", "Tecpán Guatemala", "Patzún", "Pochuta", "Patzicía", "Santa Cruz Balanyá", "Acatenango", "Yepocapa", "San Andrés Itzapa", "Parramos", "Zaragoza", "El Tejar"]},
+                {"id": 5, "nombre": "Escuintla", "region": "Sur", "municipios": ["Escuintla", "Santa Lucía Cotzumalguapa", "La Democracia", "Siquinalá", "Masagua", "Tiquisate", "La Gomera", "Guanagazapa", "San José", "Iztapa", "Palín", "San Vicente Pacaya", "Nueva Concepción", "San Juan Alotenango"]},
+                {"id": 6, "nombre": "Santa Rosa", "region": "Sur", "municipios": ["Cuilapa", "Barberena", "Santa Rosa de Lima", "Casillas", "San Rafael las Flores", "Oratorio", "San Juan Tecuaco", "Chiquimulilla", "Taxisco", "Santa María Ixhuatán", "Guazacapán", "Santa Cruz Naranjo", "Pueblo Nuevo Viñas", "Nueva Santa Rosa"]},
+                {"id": 7, "nombre": "Sololá", "region": "Occidente", "municipios": ["Sololá", "San José Chacayá", "Santa María Visitación", "Santa Lucía Utatlán", "Nahualá", "Santa Catarina Ixtahuacán", "Santa Clara La Laguna", "Concepción", "San Andrés Semetabaj", "Panajachel", "Santa Catarina Palopó", "San Antonio Palopó", "San Lucas Tolimán", "Santa Cruz La Laguna", "San Pablo La Laguna", "San Marcos La Laguna", "San Juan La Laguna", "San Pedro La Laguna", "Santiago Atitlán"]},
+                {"id": 8, "nombre": "Totonicapán", "region": "Occidente", "municipios": ["Totonicapán", "San Cristóbal Totonicapán", "San Francisco El Alto", "San Andrés Xecul", "Momostenango", "Santa María Chiquimula", "Santa Lucía La Reforma", "San Bartolo"]},
+                {"id": 9, "nombre": "Quetzaltenango", "region": "Occidente", "municipios": ["Quetzaltenango", "Salcajá", "Olintepeque", "San Carlos Sija", "Sibilia", "Cabricán", "Cajolá", "San Miguel Sigüilá", "San Juan Ostuncalco", "San Mateo", "Concepción Chiquirichapa", "San Martín Sacatepéquez", "Almolonga", "Cantel", "Huitán", "Zunil", "Colomba", "San Francisco La Unión", "El Palmar", "Coatepeque", "Génova", "Flores Costa Cuca", "La Esperanza", "Palestina de Los Altos"]},
+                {"id": 10, "nombre": "Suchitepéquez", "region": "Sur", "municipios": ["Mazatenango", "Cuyotenango", "San Francisco Zapotitlán", "San Bernardino", "San José El Ídolo", "Santo Domingo Suchitepéquez", "San Lorenzo", "Samayac", "San Pablo Jocopilas", "San Antonio Suchitepéquez", "San Miguel Panán", "San Gabriel", "Chicacao", "Patulul", "Santa Bárbara", "San Juan Bautista", "Santo Tomás La Unión", "Zunilito", "Pueblo Nuevo", "Río Bravo"]},
+                {"id": 11, "nombre": "Retalhuleu", "region": "Sur", "municipios": ["Retalhuleu", "San Sebastián", "Santa Cruz Muluá", "San Martín Zapotitlán", "San Felipe", "San Andrés Villa Seca", "Champerico", "Nuevo San Carlos", "El Asintal"]},
+                {"id": 12, "nombre": "San Marcos", "region": "Occidente", "municipios": ["San Marcos", "San Pedro Sacatepéquez", "San Antonio Sacatepéquez", "Comitancillo", "San Miguel Ixtahuacán", "Concepción Tutuapa", "Tacaná", "Sibinal", "Tajumulco", "Tejutla", "San Rafael Pie de la Cuesta", "Nuevo Progreso", "El Tumbador", "San José Ojetenam", "San Cristóbal Cucho", "Sipacapa", "Esquipulas Palo Gordo", "Río Blanco", "San Lorenzo", "La Reforma", "Pajapita", "Ixchiguán", "San José Ixcán", "Nuevo Amatenango", "Malacatán", "Catarina", "Ayutla", "Ocós", "San Pablo", "El Quetzal", "La Blanca"]},
+                {"id": 13, "nombre": "Huehuetenango", "region": "Occidente", "municipios": ["Huehuetenango", "Chiantla", "Malacatancito", "Cuilco", "Nentón", "San Pedro Necta", "Jacaltenango", "San Pedro Soloma", "San Ildefonso Ixtahuacán", "Santa Bárbara", "La Libertad", "La Democracia", "San Miguel Acatán", "San Rafael La Independencia", "Todos Santos Cuchumatán", "San Juan Atitán", "Santa Eulalia", "San Mateo Ixtatán", "Colotenango", "San Sebastián Huehuetenango", "Tectitán", "Concepción Huista", "San Juan Ixcoy", "San Antonio Huista", "San Sebastián Coatán", "Santa Cruz Barillas", "Aguacatán", "San Rafael Petzal", "San Gaspar Ixchil", "Santiago Chimaltenango", "Santa Ana Huista", "Unión Cantinil"]},
+                {"id": 14, "nombre": "Quiché", "region": "Occidente", "municipios": ["Santa Cruz del Quiché", "Chiché", "Chinique", "Zacualpa", "Chajul", "Santo Tomás Chichicastenango", "Patzité", "San Antonio Ilotenango", "San Pedro Jocopilas", "Cunén", "San Juan Cotzal", "Joyabaj", "Nebaj", "San Andrés Sajcabajá", "San Miguel Uspantán", "Sacapulas", "San Bartolomé Jocotenango", "Canillá", "Chicamán", "Ixcán", "Pachalum", "Playa Grande"]},
+                {"id": 15, "nombre": "Baja Verapaz", "region": "Norte", "municipios": ["Salamá", "San Miguel Chicaj", "Rabinal", "Cubulco", "Granados", "Santa Cruz El Chol", "San Jerónimo", "Purulhá"]},
+                {"id": 16, "nombre": "Alta Verapaz", "region": "Norte", "municipios": ["Cobán", "Santa Cruz Verapaz", "San Cristóbal Verapaz", "Tactic", "Tamahú", "Tucurú", "Panzós", "Senahú", "San Pedro Carchá", "San Juan Chamelco", "Lanquín", "Cahabón", "Chisec", "Chahal", "Fray Bartolomé de las Casas", "La Tinta", "Raxruhá"]},
+                {"id": 17, "nombre": "Petén", "region": "Petén", "municipios": ["Flores", "San José", "San Benito", "San Andrés", "La Libertad", "San Francisco", "Santa Ana", "Dolores", "San Luis", "Sayaxché", "Melchor de Mencos", "Poptún", "Las Cruces", "El Chal"]},
+                {"id": 18, "nombre": "Izabal", "region": "Oriente", "municipios": ["Puerto Barrios", "Livingston", "El Estor", "Morales", "Los Amates"]},
+                {"id": 19, "nombre": "Zacapa", "region": "Oriente", "municipios": ["Zacapa", "Estanzuela", "Río Hondo", "Gualán", "Teculután", "Usumatlán", "Cabañas", "San Diego", "La Unión", "Huité"]},
+                {"id": 20, "nombre": "Chiquimula", "region": "Oriente", "municipios": ["Chiquimula", "San José La Arada", "San Juan Ermita", "Jocotán", "Camotán", "Olopa", "Esquipulas", "Concepción Las Minas", "Quezaltepeque", "San Jacinto", "Ipala"]},
+                {"id": 21, "nombre": "Jalapa", "region": "Oriente", "municipios": ["Jalapa", "San Pedro Pinula", "San Luis Jilotepeque", "San Manuel Chaparrón", "San Carlos Alzatate", "Monjas", "Mataquescuintla"]},
+                {"id": 22, "nombre": "Jutiapa", "region": "Sur", "municipios": ["Jutiapa", "El Progreso", "Santa Catarina Mita", "Agua Blanca", "Asunción Mita", "Yupiltepeque", "Atescatempa", "Jerez", "El Adelanto", "Zapotitlán", "Comapa", "Jalpatagua", "Conguaco", "Moyuta", "Pasaco", "Quesada", "San José Acatempa"]}
+            ]
+        };
+
+        // DATOS DE LA APLICACIÓN (basados en FECS)
+        const QUESTIONS_DATA = {
+            vivienda: {
+                title: "Características de la Vivienda",
+                description: "Información sobre su vivienda y hogar",
+                questions: [
+                    {
+                        id: "departamento",
+                        label: "¿En qué departamento vive?",
+                        type: "select",
+                        options: DATOS_GUATEMALA.departamentos.map(d => ({
+                            value: d.id.toString(),
+                            label: d.nombre
+                        })),
+                        help: "Seleccione el departamento donde está ubicado su hogar"
+                    },
+                    {
+                        id: "municipio",
+                        label: "¿En qué municipio vive?",
+                        type: "select_dynamic",
+                        options: [],
+                        dependsOn: { field: "departamento", value: null },
+                        help: "Primero seleccione el departamento"
+                    },
+                    {
+                        id: "aldea_comunidad",
+                        label: "Aldea, Comunidad o Colonia (opcional)",
+                        type: "text",
+                        help: "Puede dejar este campo vacío si vive en la cabecera municipal"
+                    },
+                    {
+                        id: "area",
+                        label: "¿Su hogar está ubicado en área urbana o rural?",
+                        type: "radio",
+                        options: [
+                            { value: "urbano", label: "Urbano" },
+                            { value: "rural", label: "Rural" }
+                        ]
+                    },
+                    {
+                        id: "material_paredes",
+                        label: "¿Cuál es el material predominante en paredes exteriores?",
+                        type: "select",
+                        options: [
+                            { value: "1", label: "Ladrillo" },
+                            { value: "2", label: "Block" },
+                            { value: "3", label: "Concreto" },
+                            { value: "4", label: "Adobe" },
+                            { value: "5", label: "Madera" },
+                            { value: "6", label: "Lámina metálica" },
+                            { value: "7", label: "Bajareque" },
+                            { value: "8", label: "Lepa, palo o caña" },
+                            { value: "9", label: "Material de desecho" },
+                            { value: "98", label: "Otro" }
+                        ]
+                    },
+                    {
+                        id: "material_piso",
+                        label: "¿Cuál es el material predominante en el piso?",
+                        type: "select",
+                        options: [
+                            { value: "1", label: "Ladrillo cerámico" },
+                            { value: "2", label: "Ladrillo de cemento" },
+                            { value: "3", label: "Ladrillo de barro" },
+                            { value: "4", label: "Torta de cemento" },
+                            { value: "5", label: "Parqué/vinil" },
+                            { value: "6", label: "Madera" },
+                            { value: "7", label: "Tierra" },
+                            { value: "98", label: "Otro" }
+                        ]
+                    },
+                    {
+                        id: "cuartos",
+                        label: "¿De cuántos cuartos dispone este hogar? (Excluya cocina, baños, pasillos, garajes)",
+                        type: "number",
+                        min: 1
+                    },
+                    {
+                        id: "uso_lena",
+                        label: "El mes pasado, ¿utilizaron leña para cocinar?",
+                        type: "radio",
+                        options: [
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" }
+                        ]
+                    },
+                    {
+                        id: "estufa_mejorada",
+                        label: "¿En la cocina existe chimenea o salida de escape para humo?",
+                        type: "radio",
+                        options: [
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" }
+                        ],
+                        dependsOn: { field: "uso_lena", value: "si" }
+                    },
+                    {
+                        id: "fuente_agua",
+                        label: "¿De dónde obtiene principalmente el agua para consumo?",
+                        type: "select",
+                        options: [
+                            { value: "1", label: "Tubería red dentro de la vivienda" },
+                            { value: "2", label: "Tubería red fuera de la vivienda, pero en el terreno" },
+                            { value: "3", label: "Chorro público" },
+                            { value: "4", label: "Pozo perforado público o privado" },
+                            { value: "5", label: "Agua de lluvia" },
+                            { value: "6", label: "Río" },
+                            { value: "7", label: "Lago" },
+                            { value: "8", label: "Manantial" },
+                            { value: "98", label: "Otro" }
+                        ]
+                    },
+                    {
+                        id: "dias_sin_agua",
+                        label: "El mes pasado, ¿durante cuántos días completos no tuvo agua?",
+                        type: "number",
+                        min: 0,
+                        max: 31
+                    },
+                    {
+                        id: "servicio_sanitario",
+                        label: "¿Qué tipo de servicio sanitario tiene?",
+                        type: "select",
+                        options: [
+                            { value: "1", label: "Inodoro conectado a red de drenajes" },
+                            { value: "2", label: "Inodoro conectado a fosa séptica" },
+                            { value: "3", label: "Excusado lavable" },
+                            { value: "4", label: "Letrina o pozo ciego" },
+                            { value: "5", label: "No tiene" }
+                        ]
+                    },
+                    {
+                        id: "red_drenajes",
+                        label: "¿Está la vivienda conectada a una red de drenajes?",
+                        type: "radio",
+                        options: [
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" }
+                        ]
+                    },
+                    {
+                        id: "tipo_alumbrado",
+                        label: "¿De qué tipo de alumbrado dispone principalmente?",
+                        type: "select",
+                        options: [
+                            { value: "1", label: "Red de energía eléctrica" },
+                            { value: "2", label: "Panel solar/eólico" },
+                            { value: "3", label: "Gas corriente o kerosene" },
+                            { value: "4", label: "Candela" },
+                            { value: "98", label: "Otro" }
+                        ]
+                    },
+                    {
+                        id: "dias_sin_luz",
+                        label: "El mes pasado, ¿durante cuántos días continuos NO TUVO energía eléctrica?",
+                        type: "number",
+                        min: 0,
+                        max: 31
+                    },
+                    {
+                        id: "eliminacion_basura",
+                        label: "¿Cómo elimina la mayor parte de la basura del hogar?",
+                        type: "select",
+                        options: [
+                            { value: "1", label: "Servicio municipal" },
+                            { value: "2", label: "Servicio privado" },
+                            { value: "3", label: "La queman" },
+                            { value: "4", label: "La entierran" },
+                            { value: "5", label: "La tiran en río, quebrada o mar" },
+                            { value: "6", label: "La tiran en cualquier lugar" },
+                            { value: "7", label: "Aboneras/reciclaje" },
+                            { value: "98", label: "Otro" }
+                        ]
+                    }
+                ]
+            },
+            seguridad_alimentaria: {
+                title: "Seguridad Alimentaria",
+                description: "En los últimos 3 meses, por falta de dinero u otros recursos...",
+                questions: [
+                    {
+                        id: "sn1",
+                        label: "¿Se preocupó de que los alimentos se acabaran?",
+                        type: "radio",
+                        options: [
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" }
+                        ]
+                    },
+                    {
+                        id: "sn2",
+                        label: "¿Se quedaron sin alimentos?",
+                        type: "radio",
+                        options: [
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" }
+                        ]
+                    },
+                    {
+                        id: "sn3",
+                        label: "¿Algún adulto dejó de tener una alimentación saludable y balanceada?",
+                        type: "radio",
+                        options: [
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" }
+                        ]
+                    },
+                    {
+                        id: "sn4",
+                        label: "¿Algún adulto tuvo una alimentación basada en poca variedad de alimentos?",
+                        type: "radio",
+                        options: [
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" }
+                        ]
+                    },
+                    {
+                        id: "sn5",
+                        label: "¿Algún adulto dejó de desayunar, almorzar o cenar?",
+                        type: "radio",
+                        options: [
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" }
+                        ]
+                    },
+                    {
+                        id: "sn6",
+                        label: "¿Algún adulto comió menos de lo que debía?",
+                        type: "radio",
+                        options: [
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" }
+                        ]
+                    },
+                    {
+                        id: "sn7",
+                        label: "¿Algún adulto sintió hambre pero no comió?",
+                        type: "radio",
+                        options: [
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" }
+                        ]
+                    },
+                    {
+                        id: "sn8",
+                        label: "¿Algún adulto comió solo una vez al día o dejó de comer todo un día?",
+                        type: "radio",
+                        options: [
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" }
+                        ]
+                    },
+                    {
+                        id: "tiene_menores",
+                        label: "¿Hay menores de 18 años en el hogar?",
+                        type: "radio",
+                        options: [
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" }
+                        ]
+                    },
+                    {
+                        id: "sn9",
+                        label: "¿Tuvieron que disminuir la cantidad servida en las comidas a algún menor de 18 años?",
+                        type: "radio",
+                        options: [
+                            { value: "si", label: "Sí" },
+                            { value: "no", label: "No" }
+                        ],
+                        dependsOn: { field: "tiene_menores", value: "si" }
+                    }
+                ]
+            }
+        };
+
+        // Preguntas por persona
+        const PERSON_QUESTIONS = [
+            {
+                id: "sexo",
+                label: "Sexo",
+                type: "radio",
+                options: [
+                    { value: "hombre", label: "Hombre" },
+                    { value: "mujer", label: "Mujer" }
+                ]
+            },
+            {
+                id: "edad",
+                label: "Edad (años cumplidos)",
+                type: "number",
+                min: 0,
+                max: 120
+            },
+            {
+                id: "sabe_leer",
+                label: "¿Sabe leer y escribir?",
+                type: "radio",
+                options: [
+                    { value: "si", label: "Sí" },
+                    { value: "no", label: "No" }
+                ],
+                condition: (person) => person.edad >= 7
+            },
+            {
+                id: "inscrito_escuela",
+                label: "¿Se inscribió en algún establecimiento educativo este año?",
+                type: "radio",
+                options: [
+                    { value: "si", label: "Sí" },
+                    { value: "no", label: "No" }
+                ],
+                condition: (person) => person.edad >= 4 && person.edad <= 25
+            },
+            {
+                id: "asiste_escuela",
+                label: "¿Está asistiendo actualmente?",
+                type: "radio",
+                options: [
+                    { value: "si", label: "Sí" },
+                    { value: "no", label: "No" }
+                ],
+                condition: (person) => person.inscrito_escuela === "si"
+            },
+            {
+                id: "nivel_actual",
+                label: "Nivel educativo actual",
+                type: "select",
+                options: [
+                    { value: "1", label: "Educación inicial" },
+                    { value: "2", label: "Preprimaria" },
+                    { value: "3", label: "Primaria" },
+                    { value: "4", label: "Básico" },
+                    { value: "5", label: "Diversificado" },
+                    { value: "6", label: "Licenciatura" },
+                    { value: "7", label: "Maestría" },
+                    { value: "8", label: "Doctorado" }
+                ],
+                condition: (person) => person.asiste_escuela === "si"
+            },
+            {
+                id: "grado_actual",
+                label: "Grado actual",
+                type: "number",
+                min: 1,
+                max: 6,
+                condition: (person) => person.asiste_escuela === "si"
+            },
+            {
+                id: "nivel_aprobado",
+                label: "Nivel educativo más alto aprobado",
+                type: "select",
+                options: [
+                    { value: "0", label: "Ninguno" },
+                    { value: "1", label: "Educación inicial" },
+                    { value: "2", label: "Preprimaria" },
+                    { value: "3", label: "Primaria" },
+                    { value: "4", label: "Básico" },
+                    { value: "5", label: "Diversificado" },
+                    { value: "6", label: "Licenciatura" },
+                    { value: "7", label: "Maestría" },
+                    { value: "8", label: "Doctorado" }
+                ],
+                condition: (person) => person.edad >= 7
+            },
+            {
+                id: "grado_aprobado",
+                label: "Último grado aprobado",
+                type: "number",
+                min: 0,
+                max: 6,
+                condition: (person) => person.edad >= 7 && person.nivel_aprobado && person.nivel_aprobado !== "0"
+            },
+            {
+                id: "cuidado_infantil",
+                label: "Con quién permaneció la mayor parte del tiempo la semana pasada",
+                type: "select",
+                options: [
+                    { value: "1", label: "Con la madre en casa" },
+                    { value: "2", label: "Con el padre en casa" },
+                    { value: "3", label: "Con la madre en el trabajo" },
+                    { value: "4", label: "Con el padre en el trabajo" },
+                    { value: "5", label: "Con la madre y el padre en casa" },
+                    { value: "6", label: "Miembro del hogar" },
+                    { value: "7", label: "Empleada o niñera" },
+                    { value: "8", label: "Familiar fuera del hogar" },
+                    { value: "9", label: "Solo(a)" },
+                    { value: "10", label: "Guardería pública" },
+                    { value: "11", label: "Guardería privada" },
+                    { value: "12", label: "Centro de cuidado infantil" },
+                    { value: "13", label: "Otra persona no familiar" },
+                    { value: "98", label: "Otro" }
+                ],
+                condition: (person) => person.edad <= 2
+            },
+            {
+                id: "enfermo_mes_pasado",
+                label: "El mes pasado, ¿sufrió alguna enfermedad o accidente?",
+                type: "radio",
+                options: [
+                    { value: "si", label: "Sí" },
+                    { value: "no", label: "No" }
+                ],
+                condition: (person) => person.edad > 5
+            },
+            {
+                id: "consulto_medico",
+                label: "¿Fue donde un médico, dentista, enfermera u otro profesional de salud?",
+                type: "radio",
+                options: [
+                    { value: "si", label: "Sí" },
+                    { value: "no", label: "No" }
+                ],
+                condition: (person) => person.edad > 5
+            },
+            {
+                id: "quien_consulto",
+                label: "¿A quién consultó?",
+                type: "select",
+                options: [
+                    { value: "1", label: "Médico(a), odontólogo(a) o ginecólogo(a)" },
+                    { value: "2", label: "Psicólogo(a) o psiquiatra" },
+                    { value: "3", label: "Enfermera(o) auxiliar de enfermería" },
+                    { value: "4", label: "Promotor(a), vigilante o guardián(a) de salud" },
+                    { value: "5", label: "Curandero(a), hierbero(a) o naturista" },
+                    { value: "6", label: "Farmacéutico(a)" },
+                    { value: "7", label: "Automedicación" },
+                    { value: "98", label: "Otro" }
+                ],
+                condition: (person) => person.consulto_medico === "si"
+            },
+            {
+                id: "razon_no_consulto",
+                label: "¿Por qué razón NO consultó?",
+                type: "select",
+                options: [
+                    { value: "1", label: "Caso leve" },
+                    { value: "2", label: "No tuvo tiempo" },
+                    { value: "3", label: "Lugar de atención está lejos" },
+                    { value: "4", label: "Falta de dinero" },
+                    { value: "5", label: "Falta de medicamentos o equipo" },
+                    { value: "6", label: "No hay medio de transporte" },
+                    { value: "7", label: "No cree en estas personas" },
+                    { value: "8", label: "No lo consideró necesario" },
+                    { value: "9", label: "Mala calidad de atención" },
+                    { value: "10", label: "Esperó que se curara solo" },
+                    { value: "98", label: "Otro" }
+                ],
+                condition: (person) => person.enfermo_mes_pasado === "si" && person.consulto_medico === "no"
+            },
+            {
+                id: "embarazos",
+                label: "¿Ha tenido embarazos (incluidas pérdidas)?",
+                type: "radio",
+                options: [
+                    { value: "si", label: "Sí" },
+                    { value: "no", label: "No" }
+                ],
+                condition: (person) => person.sexo === "mujer" && person.edad >= 12 && person.edad <= 49
+            },
+            {
+                id: "num_embarazos",
+                label: "¿Cuántos embarazos?",
+                type: "number",
+                min: 1,
+                condition: (person) => person.embarazos === "si"
+            },
+            {
+                id: "ano_ultimo_embarazo",
+                label: "¿En qué año quedó embarazada la última vez?",
+                type: "number",
+                min: 2019,
+                max: 2025,
+                condition: (person) => person.embarazos === "si"
+            },
+            {
+                id: "controles_prenatales",
+                label: "¿Cuántas veces fue a control en su último embarazo?",
+                type: "number",
+                min: 0,
+                condition: (person) => person.embarazos === "si" && person.ano_ultimo_embarazo >= 2019
+            },
+            {
+                id: "actividad_principal",
+                label: "¿Cuál fue su actividad principal la semana pasada?",
+                type: "select",
+                options: [
+                    { value: "1", label: "Trabajar" },
+                    { value: "2", label: "Buscar trabajo" },
+                    { value: "3", label: "Estudiar" },
+                    { value: "4", label: "Quehaceres del hogar" },
+                    { value: "5", label: "Discapacidad severa" },
+                    { value: "6", label: "Jubilado o pensionado" },
+                    { value: "7", label: "Rentista" },
+                    { value: "8", label: "Enfermo o convaleciente" },
+                    { value: "98", label: "Otro" }
+                ],
+                condition: (person) => person.edad >= 7
+            },
+            {
+                id: "trabajo_adicional",
+                label: "Además de su actividad principal, ¿trabajó al menos una hora la semana pasada?",
+                type: "radio",
+                options: [
+                    { value: "si", label: "Sí" },
+                    { value: "no", label: "No" }
+                ],
+                condition: (person) => person.actividad_principal && person.actividad_principal !== "1"
+            },
+            {
+                id: "tipo_empleo",
+                label: "En su trabajo principal es o era:",
+                type: "select",
+                options: [
+                    { value: "1", label: "Empleado(a) público" },
+                    { value: "2", label: "Empleado(a) privado" },
+                    { value: "3", label: "Jornalero(a) o peón" },
+                    { value: "4", label: "Empleado(a) doméstico(a)" },
+                    { value: "5", label: "Trabajador(a) por cuenta propia" },
+                    { value: "6", label: "Patrón(a) empleador(a)" },
+                    { value: "7", label: "Trabajador(a) familiar sin pago" },
+                    { value: "98", label: "Otro" }
+                ],
+                condition: (person) => person.actividad_principal === "1" || person.trabajo_adicional === "si"
+            },
+            {
+                id: "tamano_empresa",
+                label: "¿Cuántas personas trabajan en total donde usted trabaja?",
+                type: "select",
+                options: [
+                    { value: "1", label: "1-10 empleados (microempresa)" },
+                    { value: "2", label: "11-80 empleados (pequeña)" },
+                    { value: "3", label: "81-200 empleados (mediana)" },
+                    { value: "4", label: "201 o más (grande)" }
+                ],
+                condition: (person) => person.tipo_empleo && ["2", "5", "6"].includes(person.tipo_empleo)
+            }
+        ];
+
+        // CALCULADORA IPM
+        class CalculadoraIPM {
+            constructor(datosHogar, personas) {
+                this.datosHogar = datosHogar;
+                this.personas = personas;
+                this.indicadores = {};
+                this.k = 0.30; // Umbral de pobreza
+            }
+
+            calcularTodo() {
+                this.calcularIndicadores();
+                const conteo = this.calcularConteoPonderado();
+                const esPobre = conteo >= this.k;
+                
+                return {
+                    indicadores: this.indicadores,
+                    conteoPonderado: conteo,
+                    esPobre: esPobre,
+                    ipm: esPobre ? conteo : 0,
+                    porcentajePrivacion: conteo * 100,
+                    resumenDimensiones: this.obtenerResumenDimensiones()
+                };
+            }
+
+            calcularIndicadores() {
+                // Indicador 1: Acceso a Salud
+                this.calcularAccesoSalud();
+                
+                // Indicador 2: Embarazo en Adolescentes
+                this.calcularEmbarazoAdolescente();
+                
+                // Indicador 3: Seguridad Alimentaria
+                this.calcularSeguridadAlimentaria();
+                
+                // Indicador 4: Cuidado Prenatal
+                this.calcularCuidadoPrenatal();
+                
+                // Indicador 5: Asistencia Escolar
+                this.calcularAsistenciaEscolar();
+                
+                // Indicador 6: Escolaridad en Adultos
+                this.calcularEscolaridadAdultos();
+                
+                // Indicador 7: Rezago Educativo
+                this.calcularRezagoEducativo();
+                
+                // Indicador 8: Cuidado Infantil
+                this.calcularCuidadoInfantil();
+                
+                // Indicador 9: Empleo Informal
+                this.calcularEmpleoInformal();
+                
+                // Indicador 10: Trabajo Infantil
+                this.calcularTrabajoInfantil();
+                
+                // Indicador 11: Materiales de Vivienda
+                this.calcularMaterialesVivienda();
+                
+                // Indicador 12: Hacinamiento
+                this.calcularHacinamiento();
+                
+                // Indicador 13: Combustible para Cocinar
+                this.calcularCombustible();
+                
+                // Indicador 14: Acceso al Agua
+                this.calcularAccesoAgua();
+                
+                // Indicador 15: Energía Eléctrica
+                this.calcularElectricidad();
+                
+                // Indicador 16: Recolección de Basura
+                this.calcularBasura();
+                
+                // Indicador 17: Saneamiento
+                this.calcularSaneamiento();
+            }
+
+            calcularAccesoSalud() {
+                const mayoresDe5 = this.personas.filter(p => p.edad > 5);
+                if (mayoresDe5.length === 0) {
+                    this.indicadores.acceso_salud = false;
+                    return;
+                }
+
+                const conPrivacion = mayoresDe5.some(p => {
+                    if (p.enfermo_mes_pasado === "si" && p.consulto_medico === "no") {
+                        const razon = p.razon_no_consulto;
+                        return ["3", "4", "5", "6", "7", "9", "10", "98"].includes(razon);
+                    }
+                    return false;
+                });
+
+                this.indicadores.acceso_salud = conPrivacion;
+            }
+
+            calcularEmbarazoAdolescente() {
+                const adolescentes = this.personas.filter(p => 
+                    p.sexo === "mujer" && p.edad >= 12 && p.edad <= 19
+                );
+                
+                if (adolescentes.length === 0) {
+                    this.indicadores.embarazo_adolescente = false;
+                    return;
+                }
+
+                const conEmbarazo = adolescentes.some(p => p.embarazos === "si" && p.num_embarazos > 0);
+                this.indicadores.embarazo_adolescente = conEmbarazo;
+            }
+
+            calcularSeguridadAlimentaria() {
+                // Escala ELCSA
+                const tieneMenores = this.datosHogar.tiene_menores === "si";
+                let puntaje = 0;
+
+                // Preguntas para todos los hogares
+                if (this.datosHogar.sn1 === "si") puntaje++;
+                if (this.datosHogar.sn2 === "si") puntaje++;
+                if (this.datosHogar.sn3 === "si") puntaje++;
+                if (this.datosHogar.sn4 === "si") puntaje++;
+                if (this.datosHogar.sn5 === "si") puntaje++;
+                if (this.datosHogar.sn6 === "si") puntaje++;
+                if (this.datosHogar.sn7 === "si") puntaje++;
+                if (this.datosHogar.sn8 === "si") puntaje++;
+
+                // Pregunta adicional si hay menores
+                if (tieneMenores && this.datosHogar.sn9 === "si") puntaje++;
+
+                // Categorización
+                let privado = false;
+                if (tieneMenores) {
+                    // Con menores: moderada (6-10) o severa (11-15)
+                    privado = puntaje >= 6;
+                } else {
+                    // Sin menores: moderada (4-6) o severa (7-8)
+                    privado = puntaje >= 4;
+                }
+
+                this.indicadores.seguridad_alimentaria = privado;
+            }
+
+            calcularCuidadoPrenatal() {
+                const mujeresFertiles = this.personas.filter(p =>
+                    p.sexo === "mujer" && p.edad >= 12 && p.edad <= 49
+                );
+
+                if (mujeresFertiles.length === 0) {
+                    this.indicadores.cuidado_prenatal = false;
+                    return;
+                }
+
+                const conPrivacion = mujeresFertiles.some(p => {
+                    if (p.embarazos === "si" && p.ano_ultimo_embarazo >= 2019) {
+                        return p.controles_prenatales < 4;
+                    }
+                    return false;
+                });
+
+                this.indicadores.cuidado_prenatal = conPrivacion;
+            }
+
+            calcularAsistenciaEscolar() {
+                const enEdadEscolar = this.personas.filter(p => p.edad >= 7 && p.edad <= 17);
+                
+                if (enEdadEscolar.length === 0) {
+                    this.indicadores.asistencia_escolar = false;
+                    return;
+                }
+
+                const conPrivacion = enEdadEscolar.some(p => {
+                    // No asiste si no está inscrito o abandonó
+                    if (p.inscrito_escuela === "no" || p.asiste_escuela === "no") {
+                        // Excepción: 16-17 años con 9+ años de escolaridad
+                        if (p.edad >= 16 && p.edad <= 17) {
+                            const anosEscolaridad = this.calcularAnosEscolaridad(p);
+                            return anosEscolaridad < 9;
+                        }
+                        return true;
+                    }
+                    return false;
+                });
+
+                this.indicadores.asistencia_escolar = conPrivacion;
+            }
+
+            calcularEscolaridadAdultos() {
+                const adultos = this.personas.filter(p => p.edad >= 18);
+                
+                if (adultos.length === 0) {
+                    this.indicadores.escolaridad_adultos = false;
+                    return;
+                }
+
+                const conPrivacion = adultos.some(p => {
+                    const anos = this.calcularAnosEscolaridad(p);
+                    
+                    if (p.edad >= 18 && p.edad <= 32) {
+                        return anos < 9;
+                    } else if (p.edad > 32 && p.edad <= 64) {
+                        return anos < 6;
+                    } else if (p.edad > 64) {
+                        return p.sabe_leer === "no";
+                    }
+                    return false;
+                });
+
+                this.indicadores.escolaridad_adultos = conPrivacion;
+            }
+
+            calcularRezagoEducativo() {
+                const estudiantil = this.personas.filter(p => p.edad >= 8 && p.edad < 18);
+                
+                if (estudiantil.length === 0) {
+                    this.indicadores.rezago_educativo = false;
+                    return;
+                }
+
+                const conPrivacion = estudiantil.some(p => {
+                    if (p.asiste_escuela !== "si") return false;
+                    
+                    const anosActuales = this.calcularAnosActuales(p);
+                    const rezago = p.edad - 6 - anosActuales;
+                    return rezago > 2;
+                });
+
+                this.indicadores.rezago_educativo = conPrivacion;
+            }
+
+            calcularCuidadoInfantil() {
+                const menoresDe3 = this.personas.filter(p => p.edad <= 2);
+                
+                if (menoresDe3.length === 0) {
+                    this.indicadores.cuidado_infantil = false;
+                    return;
+                }
+
+                const conPrivacion = menoresDe3.some(p => {
+                    // Cuidado inadecuado: solo, otra persona no familiar, etc.
+                    return ["3", "4", "9", "13"].includes(p.cuidado_infantil);
+                });
+
+                this.indicadores.cuidado_infantil = conPrivacion;
+            }
+
+            calcularEmpleoInformal() {
+                const ocupados = this.personas.filter(p => 
+                    p.edad >= 15 && (p.actividad_principal === "1" || p.trabajo_adicional === "si")
+                );
+
+                if (ocupados.length === 0) {
+                    this.indicadores.empleo_informal = false;
+                    return;
+                }
+
+                const conPrivacion = ocupados.some(p => {
+                    // Informal: jornalero, doméstico, cuenta propia, familiar sin pago
+                    const esInformal = ["3", "4", "5", "7"].includes(p.tipo_empleo);
+                    
+                    // Excepción: profesionales por cuenta propia con >12 años escolaridad
+                    if (p.tipo_empleo === "5") {
+                        const anos = this.calcularAnosEscolaridad(p);
+                        if (anos > 12) return false;
+                    }
+
+                    // Microempresa también se considera informal
+                    if (p.tamano_empresa === "1") return true;
+
+                    return esInformal;
+                });
+
+                this.indicadores.empleo_informal = conPrivacion;
+            }
+
+            calcularTrabajoInfantil() {
+                const ninos = this.personas.filter(p => p.edad > 6 && p.edad < 18);
+                
+                if (ninos.length === 0) {
+                    this.indicadores.trabajo_infantil = false;
+                    return;
+                }
+
+                const conPrivacion = ninos.some(p => {
+                    const trabaja = p.actividad_principal === "1" || p.trabajo_adicional === "si";
+                    
+                    if (!trabaja) return false;
+
+                    // Menores de 16: siempre privado si trabaja
+                    if (p.edad < 16) return true;
+
+                    // 16-17 años: privado si trabaja y no asiste o tiene <9 años escolaridad
+                    if (p.edad >= 16 && p.edad <= 17) {
+                        const noAsiste = p.asiste_escuela === "no" || p.inscrito_escuela === "no";
+                        const anosEscolaridad = this.calcularAnosEscolaridad(p);
+                        return noAsiste && anosEscolaridad <= 9;
+                    }
+
+                    return false;
+                });
+
+                this.indicadores.trabajo_infantil = conPrivacion;
+            }
+
+            calcularMaterialesVivienda() {
+                // Privado si piso de tierra o paredes inadecuadas
+                const pisoTierra = this.datosHogar.material_piso === "7";
+                const paredesInadecuadas = ["4", "6", "7", "8", "9", "98"].includes(this.datosHogar.material_paredes);
+                
+                this.indicadores.materiales = pisoTierra || paredesInadecuadas;
+            }
+
+            calcularHacinamiento() {
+                const numPersonas = this.personas.length;
+                const numCuartos = parseInt(this.datosHogar.cuartos) || 1;
+                const personasPorCuarto = numPersonas / numCuartos;
+                
+                this.indicadores.hacinamiento = personasPorCuarto > 3;
+            }
+
+            calcularCombustible() {
+                const usaLena = this.datosHogar.uso_lena === "si";
+                const tieneEstufaMejorada = this.datosHogar.estufa_mejorada === "si";
+                
+                this.indicadores.combustible = usaLena && !tieneEstufaMejorada;
+            }
+
+            calcularAccesoAgua() {
+                const esUrbano = this.datosHogar.area === "urbano";
+                const fuente = this.datosHogar.fuente_agua;
+                const diasSinAgua = parseInt(this.datosHogar.dias_sin_agua) || 0;
+
+                let privado = false;
+
+                if (esUrbano) {
+                    // Urbano: privado si fuente >= 3
+                    privado = parseInt(fuente) >= 3;
+                } else {
+                    // Rural: privado si fuente >= 5
+                    privado = parseInt(fuente) >= 5;
+                }
+
+                // También privado si estuvo >= 15 días sin agua
+                if (diasSinAgua >= 15) privado = true;
+
+                this.indicadores.agua = privado;
+            }
+
+            calcularElectricidad() {
+                const tipoAlumbrado = this.datosHogar.tipo_alumbrado;
+                const diasSinLuz = parseInt(this.datosHogar.dias_sin_luz) || 0;
+
+                // Privado si no tiene red eléctrica o estuvo >7 días sin luz
+                const sinRedElectrica = tipoAlumbrado !== "1";
+                const muchosDiasSinLuz = diasSinLuz > 7;
+
+                this.indicadores.electricidad = sinRedElectrica || muchosDiasSinLuz;
+            }
+
+            calcularBasura() {
+                const eliminacion = this.datosHogar.eliminacion_basura;
+                
+                // Privado si no tiene servicio municipal/privado o usa aboneras
+                const inadecuado = ["3", "4", "5", "6", "98"].includes(eliminacion);
+                
+                this.indicadores.basura = inadecuado;
+            }
+
+            calcularSaneamiento() {
+                const esUrbano = this.datosHogar.area === "urbano";
+                const tipoServicio = this.datosHogar.servicio_sanitario;
+                const tieneDrenaje = this.datosHogar.red_drenajes === "si";
+
+                let privado = false;
+
+                if (esUrbano) {
+                    // Urbano: privado si no tiene drenajes o servicio >= 3
+                    if (!tieneDrenaje) privado = true;
+                    if (parseInt(tipoServicio) >= 3) privado = true;
+                } else {
+                    // Rural: privado si tipo 4 o 5
+                    if (["4", "5"].includes(tipoServicio)) privado = true;
+                }
+
+                this.indicadores.saneamiento = privado;
+            }
+
+            calcularConteoPonderado() {
+                const pesos = {
+                    acceso_salud: 1/20,
+                    embarazo_adolescente: 1/20,
+                    seguridad_alimentaria: 1/20,
+                    cuidado_prenatal: 1/20,
+                    asistencia_escolar: 1/20,
+                    escolaridad_adultos: 1/20,
+                    rezago_educativo: 1/20,
+                    cuidado_infantil: 1/20,
+                    empleo_informal: 1/10,
+                    trabajo_infantil: 1/10,
+                    materiales: 1/15,
+                    hacinamiento: 1/15,
+                    combustible: 1/15,
+                    agua: 1/20,
+                    electricidad: 1/20,
+                    basura: 1/20,
+                    saneamiento: 1/20
+                };
+
+                let conteo = 0;
+                for (const [indicador, privado] of Object.entries(this.indicadores)) {
+                    if (privado) {
+                        conteo += pesos[indicador];
+                    }
+                }
+
+                return conteo;
+            }
+
+            calcularAnosEscolaridad(persona) {
+                const nivel = parseInt(persona.nivel_aprobado) || 0;
+                const grado = parseInt(persona.grado_aprobado) || 0;
+
+                if (nivel === 0 || persona.nivel_aprobado === "0") return 0;
+                if (nivel <= 2) return 0;
+                if (nivel === 3) return grado; // Primaria: 1-6 años
+                if (nivel === 4) return 6 + grado; // Básico: 7-9 años
+                if (nivel === 5) return 6 + grado; // Diversificado: 7-12 años
+                if (nivel >= 6) return 13; // Universidad+: 13 años
+
+                return 0;
+            }
+
+            calcularAnosActuales(persona) {
+                if (persona.asiste_escuela !== "si") return 0;
+
+                const nivel = parseInt(persona.nivel_actual) || 0;
+                const grado = parseInt(persona.grado_actual) || 0;
+
+                if (nivel === 0 || nivel <= 2) return 0;
+                if (nivel === 3) return grado; // Primaria
+                if (nivel === 4) return 6 + grado; // Básico
+                if (nivel === 5) return 6 + grado; // Diversificado
+                if (nivel >= 6) return 13; // Universidad+
+
+                return 0;
+            }
+
+            obtenerResumenDimensiones() {
+                return {
+                    salud: {
+                        nombre: "Salud y Seguridad Alimentaria",
+                        indicadores: [
+                            { nombre: "Acceso a Salud", privado: this.indicadores.acceso_salud },
+                            { nombre: "Embarazo en Adolescentes", privado: this.indicadores.embarazo_adolescente },
+                            { nombre: "Seguridad Alimentaria", privado: this.indicadores.seguridad_alimentaria },
+                            { nombre: "Cuidado Prenatal", privado: this.indicadores.cuidado_prenatal }
+                        ],
+                        privado: Object.entries(this.indicadores)
+                            .filter(([k, v]) => ["acceso_salud", "embarazo_adolescente", "seguridad_alimentaria", "cuidado_prenatal"].includes(k) && v)
+                            .length > 0
+                    },
+                    educacion: {
+                        nombre: "Educación",
+                        indicadores: [
+                            { nombre: "Asistencia Escolar", privado: this.indicadores.asistencia_escolar },
+                            { nombre: "Escolaridad en Adultos", privado: this.indicadores.escolaridad_adultos },
+                            { nombre: "Rezago Educativo", privado: this.indicadores.rezago_educativo },
+                            { nombre: "Cuidado Infantil", privado: this.indicadores.cuidado_infantil }
+                        ],
+                        privado: Object.entries(this.indicadores)
+                            .filter(([k, v]) => ["asistencia_escolar", "escolaridad_adultos", "rezago_educativo", "cuidado_infantil"].includes(k) && v)
+                            .length > 0
+                    },
+                    empleo: {
+                        nombre: "Empleo Digno",
+                        indicadores: [
+                            { nombre: "Empleo Informal", privado: this.indicadores.empleo_informal },
+                            { nombre: "Trabajo Infantil", privado: this.indicadores.trabajo_infantil }
+                        ],
+                        privado: Object.entries(this.indicadores)
+                            .filter(([k, v]) => ["empleo_informal", "trabajo_infantil"].includes(k) && v)
+                            .length > 0
+                    },
+                    vivienda: {
+                        nombre: "Vivienda",
+                        indicadores: [
+                            { nombre: "Materiales de la Vivienda", privado: this.indicadores.materiales },
+                            { nombre: "Hacinamiento", privado: this.indicadores.hacinamiento },
+                            { nombre: "Combustible para Cocinar", privado: this.indicadores.combustible }
+                        ],
+                        privado: Object.entries(this.indicadores)
+                            .filter(([k, v]) => ["materiales", "hacinamiento", "combustible"].includes(k) && v)
+                            .length > 0
+                    },
+                    servicios: {
+                        nombre: "Servicios Básicos",
+                        indicadores: [
+                            { nombre: "Acceso al Agua", privado: this.indicadores.agua },
+                            { nombre: "Energía Eléctrica", privado: this.indicadores.electricidad },
+                            { nombre: "Recolección de Basura", privado: this.indicadores.basura },
+                            { nombre: "Saneamiento", privado: this.indicadores.saneamiento }
+                        ],
+                        privado: Object.entries(this.indicadores)
+                            .filter(([k, v]) => ["agua", "electricidad", "basura", "saneamiento"].includes(k) && v)
+                            .length > 0
+                    }
+                };
+            }
+        }
+
+        // COMPONENTE PRINCIPAL
+        function App() {
+            const [step, setStep] = useState(0);
+            const [datosHogar, setDatosHogar] = useState({});
+            const [personas, setPersonas] = useState([]);
+            const [personaActual, setPersonaActual] = useState({});
+            const [editandoPersona, setEditandoPersona] = useState(null);
+            const [resultados, setResultados] = useState(null);
+            const [municipiosDisponibles, setMunicipiosDisponibles] = useState([]);
+            const [regionSeleccionada, setRegionSeleccionada] = useState('');
+
+            const steps = [
+                { id: "vivienda", name: "Vivienda" },
+                { id: "seguridad", name: "Alimentación" },
+                { id: "personas", name: "Personas" },
+                { id: "resultados", name: "Resultados" }
+            ];
+
+            const handleHogarChange = (questionId, value) => {
+                setDatosHogar(prev => ({ ...prev, [questionId]: value }));
+                
+                // Si se selecciona departamento, actualizar municipios y región
+                if (questionId === 'departamento') {
+                    const deptId = parseInt(value);
+                    const dept = DATOS_GUATEMALA.departamentos.find(d => d.id === deptId);
+                    if (dept) {
+                        setMunicipiosDisponibles(dept.municipios);
+                        setRegionSeleccionada(dept.region);
+                        // Limpiar municipio seleccionado al cambiar departamento
+                        setDatosHogar(prev => ({ ...prev, municipio: '' }));
+                    }
+                }
+            };
+
+            const handlePersonaChange = (questionId, value) => {
+                setPersonaActual(prev => ({ ...prev, [questionId]: value }));
+            };
+
+            const agregarPersona = () => {
+                if (editandoPersona !== null) {
+                    const nuevasPersonas = [...personas];
+                    nuevasPersonas[editandoPersona] = personaActual;
+                    setPersonas(nuevasPersonas);
+                    setEditandoPersona(null);
+                } else {
+                    setPersonas(prev => [...prev, personaActual]);
+                }
+                setPersonaActual({});
+            };
+
+            const editarPersona = (index) => {
+                setPersonaActual(personas[index]);
+                setEditandoPersona(index);
+            };
+
+            const eliminarPersona = (index) => {
+                setPersonas(prev => prev.filter((_, i) => i !== index));
+            };
+
+            const calcularIPM = () => {
+                const calculadora = new CalculadoraIPM(datosHogar, personas);
+                const res = calculadora.calcularTodo();
+                setResultados(res);
+                setStep(3);
+            };
+
+            const reiniciar = () => {
+                setStep(0);
+                setDatosHogar({});
+                setPersonas([]);
+                setPersonaActual({});
+                setEditandoPersona(null);
+                setResultados(null);
+            };
+
+            const renderQuestion = (question, value, onChange) => {
+                // Check conditions
+                if (question.condition && !question.condition(personaActual)) {
+                    return null;
+                }
+
+                // Check dependencies
+                if (question.dependsOn) {
+                    const depValue = datosHogar[question.dependsOn.field] || personaActual[question.dependsOn.field];
+                    if (question.dependsOn.value !== null && depValue !== question.dependsOn.value) {
+                        return null;
+                    }
+                }
+
+                return (
+                    <div key={question.id} className="form-group">
+                        <label className="form-label">{question.label}</label>
+                        {question.help && <span className="form-help">{question.help}</span>}
+                        
+                        {question.type === "radio" && (
+                            <div className="form-radio-group">
+                                {question.options.map(option => (
+                                    <div key={option.value} className="form-radio-option">
+                                        <input
+                                            type="radio"
+                                            id={`${question.id}-${option.value}`}
+                                            name={question.id}
+                                            value={option.value}
+                                            checked={value === option.value}
+                                            onChange={(e) => onChange(question.id, e.target.value)}
+                                            className="form-radio-input"
+                                        />
+                                        <label htmlFor={`${question.id}-${option.value}`} className="form-radio-label">
+                                            {option.label}
+                                        </label>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {question.type === "select" && (
+                            <select
+                                value={value || ""}
+                                onChange={(e) => onChange(question.id, e.target.value)}
+                                className="form-select"
+                            >
+                                <option value="">Seleccione una opción</option>
+                                {question.options.map(option => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
+
+                        {question.type === "select_dynamic" && (
+                            <select
+                                value={value || ""}
+                                onChange={(e) => onChange(question.id, e.target.value)}
+                                className="form-select"
+                                disabled={municipiosDisponibles.length === 0}
+                            >
+                                <option value="">
+                                    {municipiosDisponibles.length === 0 
+                                        ? "Primero seleccione el departamento" 
+                                        : "Seleccione el municipio"}
+                                </option>
+                                {municipiosDisponibles.map((municipio, index) => (
+                                    <option key={index} value={municipio}>
+                                        {municipio}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
+
+                        {question.type === "number" && (
+                            <input
+                                type="number"
+                                value={value || ""}
+                                onChange={(e) => onChange(question.id, e.target.value)}
+                                min={question.min}
+                                max={question.max}
+                                className="form-input"
+                            />
+                        )}
+
+                        {question.type === "text" && (
+                            <input
+                                type="text"
+                                value={value || ""}
+                                onChange={(e) => onChange(question.id, e.target.value)}
+                                className="form-input"
+                                placeholder={question.help || ""}
+                            />
+                        )}
+                    </div>
+                );
+            };
+
+            return (
+                <div className="app-container">
+                    <header className="header">
+                        <div style={{display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap'}}>
+                            <h1 className="header-title" style={{marginBottom: 0}}>Calculadora IPM Personal</h1>
+                            <div style={{
+                                background: 'linear-gradient(135deg, var(--color-secondary), var(--color-accent))',
+                                color: 'white',
+                                padding: '0.35rem 0.85rem',
+                                borderRadius: '50px',
+                                fontSize: '0.75rem',
+                                fontWeight: '700',
+                                fontFamily: 'var(--font-mono)',
+                                letterSpacing: '0.05em'
+                            }}>
+                                V2.0 GEO
+                            </div>
+                        </div>
+                        <p className="header-subtitle">
+                            Descubre tu Índice de Pobreza Multidimensional de Guatemala
+                        </p>
+                    </header>
+
+                    {step < 3 && (
+                        <div className="progress-container">
+                            <div className="progress-steps">
+                                {steps.map((s, i) => (
+                                    <div
+                                        key={s.id}
+                                        className={`progress-step ${i === step ? 'active' : ''} ${i < step ? 'completed' : ''}`}
+                                    >
+                                        <div className="progress-step-number">{i + 1}</div>
+                                        <div className="progress-step-label">{s.name}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 0 && (
+                        <div className="card">
+                            <h2 className="card-title">{QUESTIONS_DATA.vivienda.title}</h2>
+                            <p className="card-description">{QUESTIONS_DATA.vivienda.description}</p>
+                            
+                            {regionSeleccionada && (
+                                <div style={{
+                                    padding: '1rem',
+                                    background: 'linear-gradient(135deg, rgba(26, 84, 144, 0.1), rgba(244, 164, 96, 0.1))',
+                                    border: '2px solid var(--color-secondary)',
+                                    borderRadius: '12px',
+                                    marginBottom: '1.5rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem'
+                                }}>
+                                    <div style={{
+                                        background: 'var(--color-secondary)',
+                                        color: 'white',
+                                        padding: '0.5rem 1rem',
+                                        borderRadius: '50px',
+                                        fontWeight: '700',
+                                        fontSize: '0.875rem',
+                                        fontFamily: 'var(--font-mono)'
+                                    }}>
+                                        📍 Región {regionSeleccionada}
+                                    </div>
+                                    <div style={{color: 'var(--color-text-muted)', fontSize: '0.9rem'}}>
+                                        {datosHogar.departamento && DATOS_GUATEMALA.departamentos.find(d => d.id === parseInt(datosHogar.departamento))?.nombre}
+                                        {datosHogar.municipio && `, ${datosHogar.municipio}`}
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {QUESTIONS_DATA.vivienda.questions.map(q =>
+                                renderQuestion(q, datosHogar[q.id], handleHogarChange)
+                            )}
+
+                            <div className="btn-group">
+                                <button onClick={() => setStep(1)} className="btn btn-primary">
+                                    Continuar →
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 1 && (
+                        <div className="card">
+                            <h2 className="card-title">{QUESTIONS_DATA.seguridad_alimentaria.title}</h2>
+                            <p className="card-description">{QUESTIONS_DATA.seguridad_alimentaria.description}</p>
+                            
+                            {QUESTIONS_DATA.seguridad_alimentaria.questions.map(q =>
+                                renderQuestion(q, datosHogar[q.id], handleHogarChange)
+                            )}
+
+                            <div className="btn-group">
+                                <button onClick={() => setStep(0)} className="btn btn-secondary">
+                                    ← Anterior
+                                </button>
+                                <button onClick={() => setStep(2)} className="btn btn-primary">
+                                    Continuar →
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 2 && (
+                        <>
+                            <div className="card">
+                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem'}}>
+                                    <h2 className="card-title" style={{marginBottom: 0}}>Integrantes del Hogar</h2>
+                                    {personas.length > 0 && (
+                                        <div style={{
+                                            background: 'var(--color-primary)',
+                                            color: 'white',
+                                            padding: '0.5rem 1rem',
+                                            borderRadius: '50px',
+                                            fontWeight: '700',
+                                            fontSize: '0.875rem',
+                                            fontFamily: 'var(--font-mono)'
+                                        }}>
+                                            {personas.length} {personas.length === 1 ? 'persona' : 'personas'}
+                                        </div>
+                                    )}
+                                </div>
+                                <p className="card-description">
+                                    Agregue información de cada persona que vive en su hogar
+                                </p>
+
+                                {personas.length === 0 && (
+                                    <div style={{
+                                        padding: '2rem',
+                                        background: 'linear-gradient(135deg, rgba(196, 30, 58, 0.05), rgba(26, 84, 144, 0.05))',
+                                        border: '2px dashed var(--color-primary)',
+                                        borderRadius: '16px',
+                                        textAlign: 'center',
+                                        marginBottom: '2rem'
+                                    }}>
+                                        <div style={{fontSize: '3rem', marginBottom: '1rem'}}>👤</div>
+                                        <div style={{
+                                            fontSize: '1.25rem',
+                                            fontWeight: '700',
+                                            color: 'var(--color-primary)',
+                                            marginBottom: '0.5rem'
+                                        }}>
+                                            No hay personas agregadas
+                                        </div>
+                                        <div style={{color: 'var(--color-text-muted)'}}>
+                                            Complete el formulario abajo para agregar la primera persona
+                                        </div>
+                                    </div>
+                                )}
+
+                                {personas.length > 0 && (
+                                    <div className="persons-grid">
+                                        {personas.map((persona, index) => (
+                                            <div key={index} className="person-card">
+                                                <div className="person-card-header">
+                                                    <div className="person-number">{index + 1}</div>
+                                                    <div className="person-info">
+                                                        <div className="person-name">
+                                                            {persona.sexo === "hombre" ? "Hombre" : "Mujer"}
+                                                        </div>
+                                                        <div className="person-details">
+                                                            {persona.edad} años
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => eliminarPersona(index)}
+                                                        className="btn-delete"
+                                                        title="Eliminar"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <hr style={{ margin: "2rem 0", border: "none", borderTop: "2px solid var(--color-border)" }} />
+
+                                <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", marginBottom: "1.5rem" }}>
+                                    {editandoPersona !== null ? "Editar Persona" : "Agregar Nueva Persona"}
+                                </h3>
+
+                                {PERSON_QUESTIONS.map(q =>
+                                    renderQuestion(q, personaActual[q.id], handlePersonaChange)
+                                )}
+
+                                {(!personaActual.sexo || !personaActual.edad) && (
+                                    <div style={{
+                                        padding: '1rem',
+                                        background: 'rgba(255, 107, 53, 0.1)',
+                                        border: '2px solid var(--color-warning)',
+                                        borderRadius: '12px',
+                                        marginBottom: '1rem',
+                                        color: 'var(--color-warning)',
+                                        fontWeight: '600'
+                                    }}>
+                                        ⚠️ Complete al menos Sexo y Edad para agregar esta persona
+                                    </div>
+                                )}
+
+                                <div className="btn-group">
+                                    <button
+                                        onClick={agregarPersona}
+                                        className="btn btn-primary"
+                                        disabled={!personaActual.sexo || !personaActual.edad}
+                                        style={{
+                                            opacity: (!personaActual.sexo || !personaActual.edad) ? 0.5 : 1,
+                                            cursor: (!personaActual.sexo || !personaActual.edad) ? 'not-allowed' : 'pointer'
+                                        }}
+                                    >
+                                        {editandoPersona !== null ? "Guardar Cambios" : "Agregar Persona"}
+                                    </button>
+                                    {editandoPersona !== null && (
+                                        <button
+                                            onClick={() => {
+                                                setEditandoPersona(null);
+                                                setPersonaActual({});
+                                            }}
+                                            className="btn btn-secondary"
+                                        >
+                                            Cancelar
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {personas.length === 0 && (
+                                <div style={{
+                                    padding: '1.5rem',
+                                    background: 'rgba(196, 30, 58, 0.1)',
+                                    border: '2px solid var(--color-primary)',
+                                    borderRadius: '16px',
+                                    marginBottom: '1.5rem',
+                                    textAlign: 'center'
+                                }}>
+                                    <div style={{fontSize: '2rem', marginBottom: '0.5rem'}}>👥</div>
+                                    <div style={{
+                                        color: 'var(--color-primary)',
+                                        fontWeight: '700',
+                                        fontSize: '1.125rem',
+                                        marginBottom: '0.5rem'
+                                    }}>
+                                        Debe agregar al menos una persona
+                                    </div>
+                                    <div style={{color: 'var(--color-text-muted)', fontSize: '0.95rem'}}>
+                                        Complete los datos de una persona arriba y haga clic en "Agregar Persona"
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="btn-group">
+                                <button onClick={() => setStep(1)} className="btn btn-secondary">
+                                    ← Anterior
+                                </button>
+                                <button
+                                    onClick={calcularIPM}
+                                    className="btn btn-primary"
+                                    disabled={personas.length === 0}
+                                    style={{
+                                        opacity: personas.length === 0 ? 0.5 : 1,
+                                        cursor: personas.length === 0 ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    Calcular IPM →
+                                </button>
+                            </div>
+                        </>
+                    )}
+
+                    {step === 3 && resultados && (
+                        <div className="results-container">
+                            {/* Información Geográfica */}
+                            {(datosHogar.departamento || datosHogar.municipio) && (
+                                <div style={{
+                                    background: 'var(--color-surface)',
+                                    padding: 'var(--spacing-md)',
+                                    borderRadius: '16px',
+                                    border: '2px solid var(--color-border)',
+                                    marginBottom: 'var(--spacing-lg)',
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                                    gap: 'var(--spacing-sm)'
+                                }}>
+                                    <div>
+                                        <div style={{fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.25rem'}}>
+                                            📍 UBICACIÓN
+                                        </div>
+                                        <div style={{fontWeight: '600', color: 'var(--color-text)'}}>
+                                            {datosHogar.departamento && DATOS_GUATEMALA.departamentos.find(d => d.id === parseInt(datosHogar.departamento))?.nombre}
+                                            {datosHogar.municipio && `, ${datosHogar.municipio}`}
+                                        </div>
+                                        {datosHogar.aldea_comunidad && (
+                                            <div style={{fontSize: '0.85rem', color: 'var(--color-text-muted)'}}>
+                                                {datosHogar.aldea_comunidad}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {regionSeleccionada && (
+                                        <div>
+                                            <div style={{fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.25rem'}}>
+                                                🗺️ REGIÓN
+                                            </div>
+                                            <div style={{fontWeight: '600', color: 'var(--color-secondary)'}}>
+                                                {regionSeleccionada}
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div>
+                                        <div style={{fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.25rem'}}>
+                                            🏘️ ÁREA
+                                        </div>
+                                        <div style={{fontWeight: '600', color: 'var(--color-text)', textTransform: 'capitalize'}}>
+                                            {datosHogar.area || 'No especificada'}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="results-hero">
+                                <div className="ipm-score">
+                                    {(resultados.porcentajePrivacion).toFixed(1)}%
+                                </div>
+                                <div className="ipm-label">Privación Multidimensional</div>
+                                <div className="ipm-status">
+                                    {resultados.esPobre ? "En Pobreza Multidimensional" : "No Pobre Multidimensionalmente"}
+                                </div>
+                            </div>
+
+                            <div className="results-grid">
+                                <div className="metric-card">
+                                    <div className="metric-value">{personas.length}</div>
+                                    <div className="metric-label">Personas en el Hogar</div>
+                                </div>
+                                <div className="metric-card">
+                                    <div className="metric-value">
+                                        {Object.values(resultados.indicadores).filter(v => v).length}
+                                    </div>
+                                    <div className="metric-label">Indicadores con Privación</div>
+                                </div>
+                                <div className="metric-card">
+                                    <div className="metric-value">
+                                        {Object.values(resultados.resumenDimensiones).filter(d => d.privado).length}/5
+                                    </div>
+                                    <div className="metric-label">Dimensiones Afectadas</div>
+                                </div>
+                            </div>
+
+                            <div className="card">
+                                <h2 className="card-title">Desglose por Dimensión</h2>
+                                <div className="dimensions-list">
+                                    {Object.entries(resultados.resumenDimensiones).map(([key, dimension]) => (
+                                        <div key={key} className="dimension-item">
+                                            <div className="dimension-header">
+                                                <span className="dimension-name">{dimension.nombre}</span>
+                                                <span className={`dimension-status ${dimension.privado ? 'privado' : 'no-privado'}`}>
+                                                    {dimension.privado ? '✗ Privado' : '✓ No Privado'}
+                                                </span>
+                                            </div>
+                                            <div className="indicators-list">
+                                                {dimension.indicadores.map((ind, i) => (
+                                                    <div key={i} className="indicator-item">
+                                                        <span className={`indicator-icon ${ind.privado ? 'privado' : 'no-privado'}`}>
+                                                            {ind.privado ? '✗' : '✓'}
+                                                        </span>
+                                                        <span>{ind.nombre}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="card">
+                                <h3 className="card-title">¿Qué significa esto?</h3>
+                                <div style={{ lineHeight: 1.8, color: "var(--color-text-muted)" }}>
+                                    {resultados.esPobre ? (
+                                        <>
+                                            <p>Su hogar se encuentra en situación de <strong style={{ color: "var(--color-primary)" }}>pobreza multidimensional</strong> según el IPM-GT, con {(resultados.porcentajePrivacion).toFixed(1)}% de privaciones ponderadas (el umbral es 30%).</p>
+                                            <p>Esto significa que su hogar enfrenta carencias simultáneas en {Object.values(resultados.resumenDimensiones).filter(d => d.privado).length} de las 5 dimensiones evaluadas.</p>
+                                            <p>Le recomendamos acercarse a las oficinas del Ministerio de Desarrollo Social para conocer los programas sociales disponibles que pueden ayudarle.</p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <p>Su hogar <strong style={{ color: "var(--color-success)" }}>no se encuentra en pobreza multidimensional</strong> según el IPM-GT, con {(resultados.porcentajePrivacion).toFixed(1)}% de privaciones ponderadas (por debajo del umbral de 30%).</p>
+                                            <p>Sin embargo, su hogar presenta privaciones en {Object.values(resultados.indicadores).filter(v => v).length} indicadores, distribuidos en {Object.values(resultados.resumenDimensiones).filter(d => d.privado).length} dimensiones.</p>
+                                            <p>Considere trabajar en mejorar estas áreas para aumentar el bienestar de su hogar.</p>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="btn-group">
+                                <button onClick={reiniciar} className="btn btn-primary">
+                                    Calcular Nuevamente
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // Render
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
