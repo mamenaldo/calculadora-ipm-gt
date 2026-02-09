@@ -2095,14 +2095,6 @@
                     }
                 });
             };
-                        },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: { enabled: false }
-                        }
-                    }
-                });
-            };
 
             // Función para crear gráfico tipo velocímetro
             const renderGaugeChart = (resultados) => {
@@ -2722,13 +2714,13 @@
                                         <>
                                             <p>Su hogar se encuentra en situación de <strong style={{ color: "var(--color-primary)" }}>pobreza multidimensional</strong> según el IPM-GT, con {(resultados.porcentajePrivacion).toFixed(1)}% de privaciones ponderadas (el umbral es 30%).</p>
                                             <p>Esto significa que su hogar enfrenta carencias simultáneas en {Object.values(resultados.resumenDimensiones).filter(d => d.privado).length} de las 5 dimensiones evaluadas.</p>
-                                            <p>Identifique estas áreas para aumentar el bienestar de su hogar.</p>
+                                            <p>Identifica estas áreas para aumentar el bienestar de su hogar.</p>
                                         </>
                                     ) : (
                                         <>
                                             <p>Su hogar <strong style={{ color: "var(--color-success)" }}>no se encuentra en pobreza multidimensional</strong> según el IPM-GT, con {(resultados.porcentajePrivacion).toFixed(1)}% de privaciones ponderadas (por debajo del umbral de 30%).</p>
                                             <p>Sin embargo, su hogar presenta privaciones en {Object.values(resultados.indicadores).filter(v => v).length} indicadores, distribuidos en {Object.values(resultados.resumenDimensiones).filter(d => d.privado).length} dimensiones.</p>
-                                            <p>Identifique estas áreas para aumentar el bienestar de su hogar.</p>
+                                            <p>Identifica estas áreas para aumentar el bienestar de su hogar.</p>
                                         </>
                                     )}
                                 </div>
