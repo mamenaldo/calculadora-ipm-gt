@@ -642,6 +642,68 @@
             color: var(--color-primary);
             margin-bottom: var(--spacing-xs);
         }
+
+        /* Estilos para popup del disclaimer */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+
+        .popup-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 700px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 2rem;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .popup-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--color-border);
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .popup-close:hover {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .link-button {
+            color: var(--color-primary);
+            text-decoration: underline;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            font: inherit;
+        }
+
+        .link-button:hover {
+            color: var(--color-secondary);
+        }
         
         /* Responsive */
         @media (max-width: 768px) {
@@ -1027,6 +1089,21 @@
                     { value: "hombre", label: "Hombre" },
                     { value: "mujer", label: "Mujer" }
                 ]
+            },
+            {
+                id: "pueblo",
+                label: "Pueblo de Pertenencia",
+                type: "select",
+                options: [
+                    { value: "", label: "Seleccione una opción" },
+                    { value: "maya", label: "Maya" },
+                    { value: "garifuna", label: "Garífuna" },
+                    { value: "xinca", label: "Xinca" },
+                    { value: "ladino", label: "Ladino/Mestizo" },
+                    { value: "otro", label: "Otro" },
+                    { value: "prefiero_no_decir", label: "Prefiero no decir" }
+                ],
+                help: "Información para análisis de equidad y diversidad cultural"
             },
             {
                 id: "edad",
@@ -1791,6 +1868,7 @@
         function App() {
             const [step, setStep] = useState(-1); // Empezar en -1 para disclaimer
             const [disclaimerAceptado, setDisclaimerAceptado] = useState(false);
+            const [mostrarPopup, setMostrarPopup] = useState(false);
             const [datosPersonales, setDatosPersonales] = useState({});
             const [datosHogar, setDatosHogar] = useState({});
             const [personas, setPersonas] = useState([]);
@@ -2251,7 +2329,7 @@
                                 fontFamily: 'var(--font-mono)',
                                 letterSpacing: '0.05em'
                             }}>
-                                V4.0 COMPLETA
+                                V5.0 POPUP
                             </div>
                         </div>
                         <p className="header-subtitle">
@@ -2261,48 +2339,13 @@
 
                     {/* Pantalla de Disclaimer y Datos Personales */}
                     {step === -1 && (
-                        <div className="card" style={{maxWidth: '900px', margin: '0 auto'}}>
-                            <h2 className="card-title" style={{fontSize: '1.75rem', marginBottom: '1.5rem'}}>
-                                📋 Aviso Importante y Consentimiento Informado
+                        <div className="card" style={{maxWidth: '600px', margin: '0 auto'}}>
+                            <h2 className="card-title" style={{fontSize: '1.75rem', marginBottom: '1.5rem', textAlign: 'center'}}>
+                                Bienvenido a la Calculadora IPM
                             </h2>
                             
-                            <div style={{
-                                background: 'rgba(196, 30, 58, 0.05)',
-                                padding: '1.5rem',
-                                borderRadius: '12px',
-                                border: '2px solid var(--color-primary)',
-                                marginBottom: '2rem',
-                                lineHeight: '1.7'
-                            }}>
-                                <p style={{marginBottom: '1rem', fontWeight: '600'}}>
-                                    Esta plataforma es un proyecto privado, independiente y de carácter académico, sin relación institucional, operativa ni administrativa con el Estado de Guatemala ni con ninguna entidad pública.
-                                </p>
-                                
-                                <p style={{marginBottom: '1rem'}}>
-                                    La información ingresada por las personas usuarias es voluntaria y se utiliza exclusivamente con fines de investigación científica, académica y de análisis estadístico agregado, orientados a comprender condiciones de vida y privaciones multidimensionales desde un enfoque pedagógico y exploratorio.
-                                </p>
-                                
-                                <p style={{fontWeight: '600', marginBottom: '0.5rem'}}>Los datos:</p>
-                                <ul style={{marginLeft: '1.5rem', marginBottom: '1rem'}}>
-                                    <li>No se utilizan para determinar elegibilidad para programas sociales, subsidios, transferencias u otros beneficios públicos o privados.</li>
-                                    <li>No sustituyen ni reemplazan registros administrativos oficiales, censos, encuestas o instrumentos de focalización del Estado, incluyendo el Registro Social de Hogares (RSH).</li>
-                                    <li>No generan efectos legales, administrativos ni vinculantes de ningún tipo.</li>
-                                </ul>
-                                
-                                <p style={{marginBottom: '1rem'}}>
-                                    La plataforma no solicita información de identificación personal (como nombre completo, DPI, dirección exacta o datos de contacto) y los datos que eventualmente se analicen lo harán de forma anónima, agregada y sin posibilidad de identificación individual, conforme a principios de confidencialidad y ética en investigación.
-                                </p>
-                                
-                                <p style={{fontWeight: '600'}}>
-                                    Al utilizar esta herramienta, la persona usuaria declara que comprende el carácter orientativo, no oficial y no concluyente de los resultados, los cuales tienen como único objetivo promover la comprensión del enfoque de pobreza multidimensional y fomentar la reflexión informada sobre condiciones de vida a nivel de hogar.
-                                </p>
-                            </div>
-
-                            <h3 style={{fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--color-primary)'}}>
-                                Información Personal
-                            </h3>
-                            <p style={{color: 'var(--color-text-muted)', marginBottom: '1.5rem', fontSize: '0.95rem'}}>
-                                Los campos marcados con <span style={{color: 'var(--color-primary)', fontWeight: '700'}}>*</span> son obligatorios para continuar.
+                            <p style={{textAlign: 'center', color: 'var(--color-text-muted)', marginBottom: '2rem'}}>
+                                Por favor, complete los siguientes datos para comenzar
                             </p>
 
                             <div style={{display: 'grid', gap: '1.5rem'}}>
@@ -2315,7 +2358,6 @@
                                         className="form-input"
                                         placeholder="Juan Pérez López"
                                     />
-                                    <span className="form-help">Este campo es completamente opcional</span>
                                 </div>
 
                                 <div className="form-group">
@@ -2330,30 +2372,11 @@
                                         placeholder="correo@ejemplo.com"
                                         required
                                     />
-                                    <span className="form-help">Campo obligatorio para fines de contacto académico</span>
-                                </div>
-
-                                <div className="form-group">
-                                    <label className="form-label">Pueblo de Pertenencia</label>
-                                    <select
-                                        value={datosPersonales.etnia || ''}
-                                        onChange={(e) => setDatosPersonales({...datosPersonales, etnia: e.target.value})}
-                                        className="form-select"
-                                    >
-                                        <option value="">Seleccione una opción</option>
-                                        <option value="maya">Maya</option>
-                                        <option value="garifuna">Garífuna</option>
-                                        <option value="xinca">Xinca</option>
-                                        <option value="ladino">Ladino/Mestizo</option>
-                                        <option value="otro">Otro</option>
-                                        <option value="prefiero_no_decir">Prefiero no decir</option>
-                                    </select>
-                                    <span className="form-help">Información para análisis de equidad y diversidad cultural</span>
                                 </div>
 
                                 <div style={{
                                     display: 'flex',
-                                    alignItems: 'center',
+                                    alignItems: 'flex-start',
                                     gap: '0.75rem',
                                     padding: '1rem',
                                     background: 'var(--color-surface)',
@@ -2365,10 +2388,18 @@
                                         id="disclaimer"
                                         checked={disclaimerAceptado}
                                         onChange={(e) => setDisclaimerAceptado(e.target.checked)}
-                                        style={{width: '20px', height: '20px', cursor: 'pointer'}}
+                                        style={{width: '20px', height: '20px', cursor: 'pointer', marginTop: '2px', flexShrink: 0}}
                                     />
-                                    <label htmlFor="disclaimer" style={{cursor: 'pointer', fontWeight: '600', flex: 1}}>
-                                        He leído y acepto el aviso sobre el carácter académico, no oficial y orientativo de esta herramienta
+                                    <label htmlFor="disclaimer" style={{cursor: 'pointer', fontWeight: '500', flex: 1, lineHeight: '1.5'}}>
+                                        He leído y acepto {' '}
+                                        <button
+                                            type="button"
+                                            className="link-button"
+                                            onClick={() => setMostrarPopup(true)}
+                                        >
+                                            el aviso sobre el carácter académico, no oficial y orientativo
+                                        </button>
+                                        {' '} de esta herramienta
                                     </label>
                                 </div>
                             </div>
@@ -2383,7 +2414,7 @@
                                         cursor: (disclaimerAceptado && datosPersonales.email && datosPersonales.email.includes('@')) ? 'pointer' : 'not-allowed'
                                     }}
                                 >
-                                    Continuar a la Evaluación →
+                                    Comenzar Evaluación →
                                 </button>
                             </div>
 
@@ -2400,6 +2431,55 @@
                                         : 'Debe aceptar el aviso para continuar'}
                                 </p>
                             )}
+                        </div>
+                    )}
+
+                    {/* Popup del Disclaimer */}
+                    {mostrarPopup && (
+                        <div className="popup-overlay" onClick={() => setMostrarPopup(false)}>
+                            <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+                                <button className="popup-close" onClick={() => setMostrarPopup(false)}>
+                                    ✕
+                                </button>
+                                
+                                <h2 style={{fontSize: '1.5rem', marginBottom: '1.5rem', color: 'var(--color-primary)'}}>
+                                    📋 Aviso Importante y Consentimiento Informado
+                                </h2>
+
+                                <div style={{lineHeight: '1.7', color: 'var(--color-text)'}}>
+                                    <p style={{marginBottom: '1rem', fontWeight: '600'}}>
+                                        Esta plataforma es un proyecto privado, independiente y de carácter académico, sin relación institucional, operativa ni administrativa con el Estado de Guatemala ni con ninguna entidad pública.
+                                    </p>
+                                    
+                                    <p style={{marginBottom: '1rem'}}>
+                                        La información ingresada por las personas usuarias es voluntaria y se utiliza exclusivamente con fines de investigación científica, académica y de análisis estadístico agregado, orientados a comprender condiciones de vida y privaciones multidimensionales desde un enfoque pedagógico y exploratorio.
+                                    </p>
+                                    
+                                    <p style={{fontWeight: '600', marginBottom: '0.5rem'}}>Los datos:</p>
+                                    <ul style={{marginLeft: '1.5rem', marginBottom: '1rem'}}>
+                                        <li style={{marginBottom: '0.5rem'}}>No se utilizan para determinar elegibilidad para programas sociales, subsidios, transferencias u otros beneficios públicos o privados.</li>
+                                        <li style={{marginBottom: '0.5rem'}}>No sustituyen ni reemplazan registros administrativos oficiales, censos, encuestas o instrumentos de focalización del Estado, incluyendo el Registro Social de Hogares (RSH).</li>
+                                        <li style={{marginBottom: '0.5rem'}}>No generan efectos legales, administrativos ni vinculantes de ningún tipo.</li>
+                                    </ul>
+                                    
+                                    <p style={{marginBottom: '1rem'}}>
+                                        La plataforma no solicita información de identificación personal (como nombre completo, DPI, dirección exacta o datos de contacto) y los datos que eventualmente se analicen lo harán de forma anónima, agregada y sin posibilidad de identificación individual, conforme a principios de confidencialidad y ética en investigación.
+                                    </p>
+                                    
+                                    <p style={{fontWeight: '600'}}>
+                                        Al utilizar esta herramienta, la persona usuaria declara que comprende el carácter orientativo, no oficial y no concluyente de los resultados, los cuales tienen como único objetivo promover la comprensión del enfoque de pobreza multidimensional y fomentar la reflexión informada sobre condiciones de vida a nivel de hogar.
+                                    </p>
+                                </div>
+
+                                <div style={{marginTop: '2rem', textAlign: 'center'}}>
+                                    <button 
+                                        className="btn btn-primary"
+                                        onClick={() => setMostrarPopup(false)}
+                                    >
+                                        Cerrar
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     )}
 
