@@ -2985,7 +2985,7 @@
                                 <p style={{color: 'var(--color-text-muted)', fontSize: '0.85rem', marginBottom: '1rem'}}>
                                     {resultados.numIndicadoresPrivados > 0 
                                         ? `${resultados.numIndicadoresPrivados} indicadores privados ordenados por peso en el IPM`
-                                        : '¡Felicidades! No hay indicadores con privación.'}
+                                        : 'Los siguientes indicadores tienen privación y su respectivo peso (%) en el resultado.'}
                                 </p>
                                 <div style={{position: 'relative', minHeight: resultados.numIndicadoresPrivados > 0 ? `${Math.max(300, resultados.numIndicadoresPrivados * 40)}px` : '200px'}}>
                                     <canvas id="barChart"></canvas>
@@ -2999,7 +2999,7 @@
                                 </div>
                                 <div className="metric-card">
                                     <div className="metric-value">
-                                        {Object.values(resultados.indicadores).filter(v => v).length}
+                                        {Object.values(resultados.indicadores).filter(v => v).length}/17
                                     </div>
                                     <div className="metric-label">Indicadores con Privación</div>
                                 </div>
