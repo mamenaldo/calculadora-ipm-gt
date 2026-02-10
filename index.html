@@ -1789,7 +1789,9 @@
 
         // COMPONENTE PRINCIPAL
         function App() {
-            const [step, setStep] = useState(0);
+            const [step, setStep] = useState(-1); // Empezar en -1 para disclaimer
+            const [disclaimerAceptado, setDisclaimerAceptado] = useState(false);
+            const [datosPersonales, setDatosPersonales] = useState({});
             const [datosHogar, setDatosHogar] = useState({});
             const [personas, setPersonas] = useState([]);
             const [personaActual, setPersonaActual] = useState({});
@@ -1854,7 +1856,9 @@
             };
 
             const reiniciar = () => {
-                setStep(0);
+                setStep(-1);
+                setDisclaimerAceptado(false);
+                setDatosPersonales({});
                 setDatosHogar({});
                 setPersonas([]);
                 setPersonaActual({});
@@ -1864,6 +1868,18 @@
                 setRegionSeleccionada('');
             };
 
+            // Renderizar gráficos cuando se muestren resultados
+            useEffect(() => {
+                if (step === 3 && resultados) {
+                    setTimeout(() => {
+                        renderRadarChart(resultados);
+                        renderBarChart(resultados);
+                        renderGaugeChart(resultados);
+                    }, 100);
+                }
+            }, [step, resultados]);
+
+            // Función para crear gráfico de radar
             const renderRadarChart = (resultados) => {
                 const canvas = document.getElementById('radarChart');
                 if (!canvas) return;
@@ -1878,14 +1894,11 @@
                 
                 // Calcular % de privación por dimensión
                 const calcPct = (d) => {
-                    if (!d || !d.indicadores) return 0;
                     const total = Object.keys(d.indicadores).length;
-                    if (total === 0) return 0;
-                    const privados = d.num_privados || 0;
-                    return (privados / total) * 100;
+                    return total === 0 ? 0 : (d.num_privados / total) * 100;
                 };
 
-                const dataPrivacion = [
+                const data = [
                     calcPct(dim.salud),
                     calcPct(dim.educacion),
                     calcPct(dim.empleo),
@@ -1893,24 +1906,15 @@
                     calcPct(dim.servicios)
                 ];
 
-                // Debug: verificar datos
-                console.log('Datos del radar:', {
-                    salud: calcPct(dim.salud),
-                    educacion: calcPct(dim.educacion),
-                    empleo: calcPct(dim.empleo),
-                    vivienda: calcPct(dim.vivienda),
-                    servicios: calcPct(dim.servicios)
-                });
-
                 window.radarChartInstance = new Chart(ctx, {
                     type: 'radar',
                     data: {
                         labels: ['Salud', 'Educación', 'Empleo', 'Vivienda', 'Servicios'],
                         datasets: [{
                             label: 'Privación (%)',
-                            data: dataPrivacion,
+                            data: data,
                             fill: true,
-                            backgroundColor: 'rgba(196, 30, 58, 0.3)',
+                            backgroundColor: 'rgba(196, 30, 58, 0.2)',
                             borderColor: 'rgb(196, 30, 58)',
                             pointBackgroundColor: 'rgb(196, 30, 58)',
                             pointBorderColor: '#fff',
@@ -1928,12 +1932,10 @@
                             r: {
                                 beginAtZero: true,
                                 max: 100,
-                                min: 0,
                                 ticks: {
                                     stepSize: 25,
                                     callback: (value) => value + '%',
-                                    font: { size: 12 },
-                                    backdropColor: 'rgba(255, 255, 255, 0.75)'
+                                    font: { size: 12 }
                                 },
                                 pointLabels: {
                                     font: {
@@ -1945,35 +1947,18 @@
                                 },
                                 grid: {
                                     color: 'rgba(0, 0, 0, 0.1)'
-                                },
-                                angleLines: {
-                                    color: 'rgba(0, 0, 0, 0.1)'
                                 }
                             }
                         },
                         plugins: {
-                            legend: { 
-                                display: true,
-                                position: 'bottom',
-                                labels: {
-                                    font: { size: 12, family: "'Work Sans', sans-serif" },
-                                    padding: 10,
-                                    usePointStyle: true
-                                }
-                            },
+                            legend: { display: false },
                             tooltip: {
                                 backgroundColor: 'rgba(0, 0, 0, 0.8)',
                                 padding: 12,
                                 titleFont: { size: 14, weight: 'bold' },
                                 bodyFont: { size: 13 },
                                 callbacks: {
-                                    title: (tooltipItems) => {
-                                        return tooltipItems[0].label;
-                                    },
-                                    label: (context) => {
-                                        const value = context.parsed.r;
-                                        return `Privación: ${value.toFixed(1)}%`;
-                                    }
+                                    label: (ctx) => ctx.parsed.r.toFixed(1) + '% de privación'
                                 }
                             }
                         }
@@ -2012,45 +1997,9 @@
                     'saneamiento': 'Saneamiento'
                 };
 
-                // Pesos de cada indicador según metodología IPM
-                const pesos = {
-                    'acceso_salud': 5,
-                    'embarazo_adolescente': 5,
-                    'seguridad_alimentaria': 5,
-                    'cuidado_prenatal': 5,
-                    'asistencia_escolar': 5,
-                    'escolaridad_adultos': 5,
-                    'rezago_educativo': 5,
-                    'cuidado_infantil': 5,
-                    'empleo_informal': 10,
-                    'trabajo_infantil': 10,
-                    'materiales_vivienda': 6.67,
-                    'hacinamiento': 6.67,
-                    'combustible': 6.67,
-                    'agua': 5,
-                    'electricidad': 5,
-                    'basura': 5,
-                    'saneamiento': 5
-                };
-
                 const privados = [];
-                const valores = [];
-                const colores = [];
-                
                 for (const [key, value] of Object.entries(resultados.indicadores)) {
-                    if (value) {
-                        privados.push(nombres[key] || key);
-                        valores.push(pesos[key] || 5);
-                        
-                        // Color según peso
-                        if (pesos[key] >= 10) {
-                            colores.push('rgba(196, 30, 58, 0.9)'); // Rojo oscuro para empleo (10%)
-                        } else if (pesos[key] >= 6.5) {
-                            colores.push('rgba(196, 30, 58, 0.75)'); // Rojo medio para vivienda (6.67%)
-                        } else {
-                            colores.push('rgba(196, 30, 58, 0.6)'); // Rojo claro para otros (5%)
-                        }
-                    }
+                    if (value) privados.push(nombres[key] || key);
                 }
 
                 if (privados.length === 0) {
@@ -2066,10 +2015,10 @@
                     data: {
                         labels: privados,
                         datasets: [{
-                            label: 'Peso en el IPM (%)',
-                            data: valores,
-                            backgroundColor: colores,
-                            borderColor: colores.map(c => c.replace('0.6', '1').replace('0.75', '1').replace('0.9', '1')),
+                            label: 'Privado',
+                            data: privados.map(() => 1),
+                            backgroundColor: 'rgba(196, 30, 58, 0.8)',
+                            borderColor: 'rgb(196, 30, 58)',
                             borderWidth: 2,
                             borderRadius: 6
                         }]
@@ -2079,19 +2028,7 @@
                         responsive: true,
                         maintainAspectRatio: true,
                         scales: {
-                            x: { 
-                                display: true,
-                                max: 10,
-                                ticks: {
-                                    callback: (value) => value + '%',
-                                    font: { size: 11 }
-                                },
-                                title: {
-                                    display: true,
-                                    text: 'Peso en el IPM (%)',
-                                    font: { size: 12, weight: 'bold' }
-                                }
-                            },
+                            x: { display: false, max: 1 },
                             y: {
                                 ticks: {
                                     font: { size: 12, family: "'Work Sans', sans-serif" },
@@ -2101,15 +2038,7 @@
                         },
                         plugins: {
                             legend: { display: false },
-                            tooltip: {
-                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                padding: 12,
-                                titleFont: { size: 13, weight: 'bold' },
-                                bodyFont: { size: 12 },
-                                callbacks: {
-                                    label: (ctx) => `Peso: ${ctx.parsed.x.toFixed(2)}% del IPM total`
-                                }
-                            }
+                            tooltip: { enabled: false }
                         }
                     }
                 });
@@ -2207,16 +2136,6 @@
                     }]
                 });
             };
-
-            useEffect(() => {
-                if (step === 3 && resultados) {
-                    setTimeout(() => {
-                        renderRadarChart(resultados);
-                        renderBarChart(resultados);
-                        renderGaugeChart(resultados);
-                    }, 100);
-                }
-            }, [step, resultados]);
 
             const renderQuestion = (question, value, onChange) => {
                 // Check conditions
@@ -2332,7 +2251,7 @@
                                 fontFamily: 'var(--font-mono)',
                                 letterSpacing: '0.05em'
                             }}>
-                                V3.0 GEO+GRÁFICOS
+                                V4.0 COMPLETA
                             </div>
                         </div>
                         <p className="header-subtitle">
@@ -2340,7 +2259,151 @@
                         </p>
                     </header>
 
-                    {step < 3 && (
+                    {/* Pantalla de Disclaimer y Datos Personales */}
+                    {step === -1 && (
+                        <div className="card" style={{maxWidth: '900px', margin: '0 auto'}}>
+                            <h2 className="card-title" style={{fontSize: '1.75rem', marginBottom: '1.5rem'}}>
+                                📋 Aviso Importante y Consentimiento Informado
+                            </h2>
+                            
+                            <div style={{
+                                background: 'rgba(196, 30, 58, 0.05)',
+                                padding: '1.5rem',
+                                borderRadius: '12px',
+                                border: '2px solid var(--color-primary)',
+                                marginBottom: '2rem',
+                                lineHeight: '1.7'
+                            }}>
+                                <p style={{marginBottom: '1rem', fontWeight: '600'}}>
+                                    Esta plataforma es un proyecto privado, independiente y de carácter académico, sin relación institucional, operativa ni administrativa con el Estado de Guatemala ni con ninguna entidad pública.
+                                </p>
+                                
+                                <p style={{marginBottom: '1rem'}}>
+                                    La información ingresada por las personas usuarias es voluntaria y se utiliza exclusivamente con fines de investigación científica, académica y de análisis estadístico agregado, orientados a comprender condiciones de vida y privaciones multidimensionales desde un enfoque pedagógico y exploratorio.
+                                </p>
+                                
+                                <p style={{fontWeight: '600', marginBottom: '0.5rem'}}>Los datos:</p>
+                                <ul style={{marginLeft: '1.5rem', marginBottom: '1rem'}}>
+                                    <li>No se utilizan para determinar elegibilidad para programas sociales, subsidios, transferencias u otros beneficios públicos o privados.</li>
+                                    <li>No sustituyen ni reemplazan registros administrativos oficiales, censos, encuestas o instrumentos de focalización del Estado, incluyendo el Registro Social de Hogares (RSH).</li>
+                                    <li>No generan efectos legales, administrativos ni vinculantes de ningún tipo.</li>
+                                </ul>
+                                
+                                <p style={{marginBottom: '1rem'}}>
+                                    La plataforma no solicita información de identificación personal (como nombre completo, DPI, dirección exacta o datos de contacto) y los datos que eventualmente se analicen lo harán de forma anónima, agregada y sin posibilidad de identificación individual, conforme a principios de confidencialidad y ética en investigación.
+                                </p>
+                                
+                                <p style={{fontWeight: '600'}}>
+                                    Al utilizar esta herramienta, la persona usuaria declara que comprende el carácter orientativo, no oficial y no concluyente de los resultados, los cuales tienen como único objetivo promover la comprensión del enfoque de pobreza multidimensional y fomentar la reflexión informada sobre condiciones de vida a nivel de hogar.
+                                </p>
+                            </div>
+
+                            <h3 style={{fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--color-primary)'}}>
+                                Información Personal
+                            </h3>
+                            <p style={{color: 'var(--color-text-muted)', marginBottom: '1.5rem', fontSize: '0.95rem'}}>
+                                Los campos marcados con <span style={{color: 'var(--color-primary)', fontWeight: '700'}}>*</span> son obligatorios para continuar.
+                            </p>
+
+                            <div style={{display: 'grid', gap: '1.5rem'}}>
+                                <div className="form-group">
+                                    <label className="form-label">Nombre y Apellidos (opcional)</label>
+                                    <input
+                                        type="text"
+                                        value={datosPersonales.nombre || ''}
+                                        onChange={(e) => setDatosPersonales({...datosPersonales, nombre: e.target.value})}
+                                        className="form-input"
+                                        placeholder="Juan Pérez López"
+                                    />
+                                    <span className="form-help">Este campo es completamente opcional</span>
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        Correo Electrónico <span style={{color: 'var(--color-primary)'}}>*</span>
+                                    </label>
+                                    <input
+                                        type="email"
+                                        value={datosPersonales.email || ''}
+                                        onChange={(e) => setDatosPersonales({...datosPersonales, email: e.target.value})}
+                                        className="form-input"
+                                        placeholder="correo@ejemplo.com"
+                                        required
+                                    />
+                                    <span className="form-help">Campo obligatorio para fines de contacto académico</span>
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Pueblo de Pertenencia</label>
+                                    <select
+                                        value={datosPersonales.etnia || ''}
+                                        onChange={(e) => setDatosPersonales({...datosPersonales, etnia: e.target.value})}
+                                        className="form-select"
+                                    >
+                                        <option value="">Seleccione una opción</option>
+                                        <option value="maya">Maya</option>
+                                        <option value="garifuna">Garífuna</option>
+                                        <option value="xinca">Xinca</option>
+                                        <option value="ladino">Ladino/Mestizo</option>
+                                        <option value="otro">Otro</option>
+                                        <option value="prefiero_no_decir">Prefiero no decir</option>
+                                    </select>
+                                    <span className="form-help">Información para análisis de equidad y diversidad cultural</span>
+                                </div>
+
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem',
+                                    padding: '1rem',
+                                    background: 'var(--color-surface)',
+                                    borderRadius: '8px',
+                                    border: disclaimerAceptado ? '2px solid var(--color-success)' : '2px solid var(--color-border)'
+                                }}>
+                                    <input
+                                        type="checkbox"
+                                        id="disclaimer"
+                                        checked={disclaimerAceptado}
+                                        onChange={(e) => setDisclaimerAceptado(e.target.checked)}
+                                        style={{width: '20px', height: '20px', cursor: 'pointer'}}
+                                    />
+                                    <label htmlFor="disclaimer" style={{cursor: 'pointer', fontWeight: '600', flex: 1}}>
+                                        He leído y acepto el aviso sobre el carácter académico, no oficial y orientativo de esta herramienta
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="btn-group" style={{marginTop: '2rem'}}>
+                                <button
+                                    onClick={() => setStep(0)}
+                                    className="btn btn-primary"
+                                    disabled={!disclaimerAceptado || !datosPersonales.email || !datosPersonales.email.includes('@')}
+                                    style={{
+                                        opacity: (disclaimerAceptado && datosPersonales.email && datosPersonales.email.includes('@')) ? 1 : 0.5,
+                                        cursor: (disclaimerAceptado && datosPersonales.email && datosPersonales.email.includes('@')) ? 'pointer' : 'not-allowed'
+                                    }}
+                                >
+                                    Continuar a la Evaluación →
+                                </button>
+                            </div>
+
+                            {(!disclaimerAceptado || !datosPersonales.email || !datosPersonales.email.includes('@')) && (
+                                <p style={{
+                                    marginTop: '1rem',
+                                    textAlign: 'center',
+                                    color: 'var(--color-warning)',
+                                    fontSize: '0.9rem',
+                                    fontWeight: '600'
+                                }}>
+                                    ⚠️ {!datosPersonales.email || !datosPersonales.email.includes('@') 
+                                        ? 'Debe ingresar un correo electrónico válido' 
+                                        : 'Debe aceptar el aviso para continuar'}
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    {step < 3 && step >= 0 && (
                         <div className="progress-container">
                             <div className="progress-steps">
                                 {steps.map((s, i) => (
@@ -2591,6 +2654,57 @@
 
                     {step === 3 && resultados && (
                         <div className="results-container">
+                            {/* Información Personal (si fue proporcionada) */}
+                            {(datosPersonales.nombre || datosPersonales.email || datosPersonales.etnia) && (
+                                <div style={{
+                                    background: 'var(--color-surface)',
+                                    padding: 'var(--spacing-md)',
+                                    borderRadius: '16px',
+                                    border: '2px solid var(--color-border)',
+                                    marginBottom: 'var(--spacing-lg)'
+                                }}>
+                                    <h3 style={{fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--color-primary)'}}>
+                                        👤 Información del Evaluado
+                                    </h3>
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                                        gap: 'var(--spacing-sm)'
+                                    }}>
+                                        {datosPersonales.nombre && (
+                                            <div>
+                                                <div style={{fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.25rem'}}>
+                                                    NOMBRE
+                                                </div>
+                                                <div style={{fontWeight: '600', color: 'var(--color-text)'}}>
+                                                    {datosPersonales.nombre}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {datosPersonales.email && (
+                                            <div>
+                                                <div style={{fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.25rem'}}>
+                                                    CORREO
+                                                </div>
+                                                <div style={{fontWeight: '600', color: 'var(--color-text)'}}>
+                                                    {datosPersonales.email}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {datosPersonales.etnia && datosPersonales.etnia !== 'prefiero_no_decir' && (
+                                            <div>
+                                                <div style={{fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.25rem'}}>
+                                                    PUEBLO
+                                                </div>
+                                                <div style={{fontWeight: '600', color: 'var(--color-text)', textTransform: 'capitalize'}}>
+                                                    {datosPersonales.etnia === 'ladino' ? 'Ladino/Mestizo' : datosPersonales.etnia}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Información Geográfica */}
                             {(datosHogar.departamento || datosHogar.municipio) && (
                                 <div style={{
@@ -2663,7 +2777,7 @@
                                 <h3 className="chart-title">📈 Indicadores con Privación</h3>
                                 <p style={{color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem'}}>
                                     {resultados.numIndicadoresPrivados > 0 
-                                        ? `Gráfico de barras mostrando los ${resultados.numIndicadoresPrivados} indicadores privados y su peso en el cálculo del IPM. Barras más largas = mayor impacto.`
+                                        ? `Gráfico de barras mostrando los ${resultados.numIndicadoresPrivados} indicadores en los que su hogar presenta privaciones.`
                                         : '¡Felicidades! No hay indicadores con privación.'}
                                 </p>
                                 <div style={{position: 'relative', height: resultados.numIndicadoresPrivados > 0 ? 'auto' : '200px'}}>
@@ -2733,13 +2847,13 @@
                                         <>
                                             <p>Su hogar se encuentra en situación de <strong style={{ color: "var(--color-primary)" }}>pobreza multidimensional</strong> según el IPM-GT, con {(resultados.porcentajePrivacion).toFixed(1)}% de privaciones ponderadas (el umbral es 30%).</p>
                                             <p>Esto significa que su hogar enfrenta carencias simultáneas en {Object.values(resultados.resumenDimensiones).filter(d => d.privado).length} de las 5 dimensiones evaluadas.</p>
-                                            <p>Identifique estas áreas para aumentar el bienestar de su hogar.</p>
+                                            <p>Le recomendamos acercarse a las oficinas del Ministerio de Desarrollo Social para conocer los programas sociales disponibles que pueden ayudarle.</p>
                                         </>
                                     ) : (
                                         <>
                                             <p>Su hogar <strong style={{ color: "var(--color-success)" }}>no se encuentra en pobreza multidimensional</strong> según el IPM-GT, con {(resultados.porcentajePrivacion).toFixed(1)}% de privaciones ponderadas (por debajo del umbral de 30%).</p>
                                             <p>Sin embargo, su hogar presenta privaciones en {Object.values(resultados.indicadores).filter(v => v).length} indicadores, distribuidos en {Object.values(resultados.resumenDimensiones).filter(d => d.privado).length} dimensiones.</p>
-                                            <p>Identifique estas áreas para aumentar el bienestar de su hogar.</p>
+                                            <p>Considere trabajar en mejorar estas áreas para aumentar el bienestar de su hogar.</p>
                                         </>
                                     )}
                                 </div>
