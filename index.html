@@ -736,6 +736,18 @@
             .results-grid {
                 grid-template-columns: 1fr;
             }
+
+            /* Dashboard responsive */
+            .chart-container {
+                padding: var(--spacing-md);
+            }
+        }
+
+        @media (max-width: 900px) {
+            /* Charts stack in single column on small screens */
+            div[style*="gridTemplateColumns"] {
+                grid-template-columns: 1fr !important;
+            }
         }
         
         /* Accessibility */
@@ -1780,7 +1792,7 @@
                 if (nivel <= 2) return 0;
                 if (nivel === 3) return grado; // Primaria: 1-6 años
                 if (nivel === 4) return 6 + grado; // Básico: 7-9 años
-                if (nivel === 5) return 6 + grado; // Diversificado: 7-12 años
+                if (nivel === 5) return 9 + grado; // Diversificado: 10-12 años (aprox.)
                 if (nivel >= 6) return 13; // Universidad+: 13 años
 
                 return 0;
@@ -1795,7 +1807,7 @@
                 if (nivel === 0 || nivel <= 2) return 0;
                 if (nivel === 3) return grado; // Primaria
                 if (nivel === 4) return 6 + grado; // Básico
-                if (nivel === 5) return 6 + grado; // Diversificado
+                if (nivel === 5) return 9 + grado; // Diversificado
                 if (nivel >= 6) return 13; // Universidad+
 
                 return 0;
@@ -1972,11 +1984,14 @@
                 
                 // Calcular % de privación por dimensión
                 const calcPct = (d) => {
-                    const total = Object.keys(d.indicadores).length;
-                    return total === 0 ? 0 : (d.num_privados / total) * 100;
+                    if (!d || !Array.isArray(d.indicadores)) return 0;
+                    const total = d.indicadores.length;
+                    if (total === 0) return 0;
+                    const privados = d.indicadores.filter(i => i.privado).length;
+                    return (privados / total) * 100;
                 };
 
-                const data = [
+                const dataPrivacion = [
                     calcPct(dim.salud),
                     calcPct(dim.educacion),
                     calcPct(dim.empleo),
@@ -1984,15 +1999,24 @@
                     calcPct(dim.servicios)
                 ];
 
+                // Debug: verificar datos
+                console.log('Datos del radar:', {
+                    salud: calcPct(dim.salud),
+                    educacion: calcPct(dim.educacion),
+                    empleo: calcPct(dim.empleo),
+                    vivienda: calcPct(dim.vivienda),
+                    servicios: calcPct(dim.servicios)
+                });
+
                 window.radarChartInstance = new Chart(ctx, {
                     type: 'radar',
                     data: {
                         labels: ['Salud', 'Educación', 'Empleo', 'Vivienda', 'Servicios'],
                         datasets: [{
                             label: 'Privación (%)',
-                            data: data,
+                            data: dataPrivacion,
                             fill: true,
-                            backgroundColor: 'rgba(196, 30, 58, 0.2)',
+                            backgroundColor: 'rgba(196, 30, 58, 0.3)',
                             borderColor: 'rgb(196, 30, 58)',
                             pointBackgroundColor: 'rgb(196, 30, 58)',
                             pointBorderColor: '#fff',
@@ -2010,10 +2034,12 @@
                             r: {
                                 beginAtZero: true,
                                 max: 100,
+                                min: 0,
                                 ticks: {
                                     stepSize: 25,
                                     callback: (value) => value + '%',
-                                    font: { size: 12 }
+                                    font: { size: 12 },
+                                    backdropColor: 'rgba(255, 255, 255, 0.75)'
                                 },
                                 pointLabels: {
                                     font: {
@@ -2025,18 +2051,35 @@
                                 },
                                 grid: {
                                     color: 'rgba(0, 0, 0, 0.1)'
+                                },
+                                angleLines: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
                                 }
                             }
                         },
                         plugins: {
-                            legend: { display: false },
+                            legend: { 
+                                display: true,
+                                position: 'bottom',
+                                labels: {
+                                    font: { size: 12, family: "'Work Sans', sans-serif" },
+                                    padding: 10,
+                                    usePointStyle: true
+                                }
+                            },
                             tooltip: {
                                 backgroundColor: 'rgba(0, 0, 0, 0.8)',
                                 padding: 12,
                                 titleFont: { size: 14, weight: 'bold' },
                                 bodyFont: { size: 13 },
                                 callbacks: {
-                                    label: (ctx) => ctx.parsed.r.toFixed(1) + '% de privación'
+                                    title: (tooltipItems) => {
+                                        return tooltipItems[0].label;
+                                    },
+                                    label: (context) => {
+                                        const value = context.parsed.r;
+                                        return `Privación: ${value.toFixed(1)}%`;
+                                    }
                                 }
                             }
                         }
@@ -2075,9 +2118,45 @@
                     'saneamiento': 'Saneamiento'
                 };
 
+                // Pesos de cada indicador según metodología IPM
+                const pesos = {
+                    'acceso_salud': 5,
+                    'embarazo_adolescente': 5,
+                    'seguridad_alimentaria': 5,
+                    'cuidado_prenatal': 5,
+                    'asistencia_escolar': 5,
+                    'escolaridad_adultos': 5,
+                    'rezago_educativo': 5,
+                    'cuidado_infantil': 5,
+                    'empleo_informal': 10,
+                    'trabajo_infantil': 10,
+                    'materiales_vivienda': 6.67,
+                    'hacinamiento': 6.67,
+                    'combustible': 6.67,
+                    'agua': 5,
+                    'electricidad': 5,
+                    'basura': 5,
+                    'saneamiento': 5
+                };
+
                 const privados = [];
+                const valores = [];
+                const colores = [];
+                
                 for (const [key, value] of Object.entries(resultados.indicadores)) {
-                    if (value) privados.push(nombres[key] || key);
+                    if (value) {
+                        privados.push(nombres[key] || key);
+                        valores.push(pesos[key] || 5);
+                        
+                        // Color según peso
+                        if (pesos[key] >= 10) {
+                            colores.push('rgba(196, 30, 58, 0.9)'); // Rojo oscuro para empleo (10%)
+                        } else if (pesos[key] >= 6.5) {
+                            colores.push('rgba(196, 30, 58, 0.75)'); // Rojo medio para vivienda (6.67%)
+                        } else {
+                            colores.push('rgba(196, 30, 58, 0.6)'); // Rojo claro para otros (5%)
+                        }
+                    }
                 }
 
                 if (privados.length === 0) {
@@ -2093,10 +2172,10 @@
                     data: {
                         labels: privados,
                         datasets: [{
-                            label: 'Privado',
-                            data: privados.map(() => 1),
-                            backgroundColor: 'rgba(196, 30, 58, 0.8)',
-                            borderColor: 'rgb(196, 30, 58)',
+                            label: 'Peso en el IPM (%)',
+                            data: valores,
+                            backgroundColor: colores,
+                            borderColor: colores.map(c => c.replace('0.6', '1').replace('0.75', '1').replace('0.9', '1')),
                             borderWidth: 2,
                             borderRadius: 6
                         }]
@@ -2106,7 +2185,19 @@
                         responsive: true,
                         maintainAspectRatio: true,
                         scales: {
-                            x: { display: false, max: 1 },
+                            x: { 
+                                display: true,
+                                max: 10,
+                                ticks: {
+                                    callback: (value) => value + '%',
+                                    font: { size: 11 }
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Peso en el IPM (%)',
+                                    font: { size: 12, weight: 'bold' }
+                                }
+                            },
                             y: {
                                 ticks: {
                                     font: { size: 12, family: "'Work Sans', sans-serif" },
@@ -2116,7 +2207,15 @@
                         },
                         plugins: {
                             legend: { display: false },
-                            tooltip: { enabled: false }
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                titleFont: { size: 13, weight: 'bold' },
+                                bodyFont: { size: 12 },
+                                callbacks: {
+                                    label: (ctx) => `Peso: ${ctx.parsed.x.toFixed(2)}% del IPM total`
+                                }
+                            }
                         }
                     }
                 });
@@ -2214,6 +2313,16 @@
                     }]
                 });
             };
+
+            useEffect(() => {
+                if (step === 3 && resultados) {
+                    setTimeout(() => {
+                        renderRadarChart(resultados);
+                        renderBarChart(resultados);
+                        renderGaugeChart(resultados);
+                    }, 100);
+                }
+            }, [step, resultados]);
 
             const renderQuestion = (question, value, onChange) => {
                 // Check conditions
@@ -2396,7 +2505,7 @@
                                             className="link-button"
                                             onClick={() => setMostrarPopup(true)}
                                         >
-                                            He leído y acepto el aviso sobre el carácter académico, no oficial y orientativo de esta herramienta
+                                            He leído y acepto el aviso sobre el carácter académico, no oficial y orientativo de esta herramienta.
                                         </button>
                                     </label>
                                 </div>
@@ -2840,36 +2949,46 @@
                                 </div>
                             </div>
 
-                            {/* Gráficos Visuales */}
-                            <div className="chart-container">
-                                <h3 className="chart-title">📊 Gráfico de Radar por Dimensión</h3>
-                                <p style={{color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem'}}>
-                                    Visualización de las 5 dimensiones del IPM. Mientras más cerca del centro, mejor.
-                                </p>
-                                <div style={{maxWidth: '600px', margin: '0 auto', position: 'relative', height: '400px'}}>
-                                    <canvas id="radarChart"></canvas>
+                            {/* Dashboard de Gráficos */}
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
+                                gap: 'var(--spacing-lg)',
+                                marginBottom: 'var(--spacing-lg)'
+                            }}>
+                                {/* Gráfico de Radar */}
+                                <div className="chart-container">
+                                    <h3 className="chart-title">📊 Análisis por Dimensión</h3>
+                                    <p style={{color: 'var(--color-text-muted)', fontSize: '0.85rem', marginBottom: '1rem'}}>
+                                        Porcentaje de privación en cada dimensión
+                                    </p>
+                                    <div style={{position: 'relative', height: '350px'}}>
+                                        <canvas id="radarChart"></canvas>
+                                    </div>
+                                </div>
+
+                                {/* Gráfico de Semáforo */}
+                                <div className="chart-container">
+                                    <h3 className="chart-title">🎯 Tu Nivel de IPM</h3>
+                                    <p style={{color: 'var(--color-text-muted)', fontSize: '0.85rem', marginBottom: '1rem'}}>
+                                        Ubicación en la escala de pobreza multidimensional
+                                    </p>
+                                    <div style={{position: 'relative', height: '350px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                                        <canvas id="gaugeChart" style={{maxWidth: '400px', maxHeight: '300px'}}></canvas>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="chart-container">
+                            {/* Gráfico de Barras - Ancho Completo */}
+                            <div className="chart-container" style={{marginBottom: 'var(--spacing-lg)'}}>
                                 <h3 className="chart-title">📈 Indicadores con Privación</h3>
-                                <p style={{color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem'}}>
+                                <p style={{color: 'var(--color-text-muted)', fontSize: '0.85rem', marginBottom: '1rem'}}>
                                     {resultados.numIndicadoresPrivados > 0 
-                                        ? `Gráfico de barras mostrando los ${resultados.numIndicadoresPrivados} indicadores en los que su hogar presenta privaciones.`
+                                        ? `${resultados.numIndicadoresPrivados} indicadores privados ordenados por peso en el IPM`
                                         : '¡Felicidades! No hay indicadores con privación.'}
                                 </p>
-                                <div style={{position: 'relative', height: resultados.numIndicadoresPrivados > 0 ? 'auto' : '200px'}}>
+                                <div style={{position: 'relative', minHeight: resultados.numIndicadoresPrivados > 0 ? `${Math.max(300, resultados.numIndicadoresPrivados * 40)}px` : '200px'}}>
                                     <canvas id="barChart"></canvas>
-                                </div>
-                            </div>
-
-                            <div className="chart-container">
-                                <h3 className="chart-title">🎯 Semáforo de Estado IPM</h3>
-                                <p style={{color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem'}}>
-                                    Ubicación de su IPM en la escala de pobreza multidimensional.
-                                </p>
-                                <div style={{maxWidth: '500px', margin: '0 auto', position: 'relative', height: '300px'}}>
-                                    <canvas id="gaugeChart"></canvas>
                                 </div>
                             </div>
 
@@ -2925,13 +3044,13 @@
                                         <>
                                             <p>Su hogar se encuentra en situación de <strong style={{ color: "var(--color-primary)" }}>pobreza multidimensional</strong> según el IPM-GT, con {(resultados.porcentajePrivacion).toFixed(1)}% de privaciones ponderadas (el umbral es 30%).</p>
                                             <p>Esto significa que su hogar enfrenta carencias simultáneas en {Object.values(resultados.resumenDimensiones).filter(d => d.privado).length} de las 5 dimensiones evaluadas.</p>
-                                            <p>Le recomendamos acercarse a las oficinas del Ministerio de Desarrollo Social para conocer los programas sociales disponibles que pueden ayudarle.</p>
+                                            <p>Identifique estas áreas para aumentar el bienestar de su hogar.</p>
                                         </>
                                     ) : (
                                         <>
                                             <p>Su hogar <strong style={{ color: "var(--color-success)" }}>no se encuentra en pobreza multidimensional</strong> según el IPM-GT, con {(resultados.porcentajePrivacion).toFixed(1)}% de privaciones ponderadas (por debajo del umbral de 30%).</p>
                                             <p>Sin embargo, su hogar presenta privaciones en {Object.values(resultados.indicadores).filter(v => v).length} indicadores, distribuidos en {Object.values(resultados.resumenDimensiones).filter(d => d.privado).length} dimensiones.</p>
-                                            <p>Considere trabajar en mejorar estas áreas para aumentar el bienestar de su hogar.</p>
+                                            <p>Identifique estas áreas para aumentar el bienestar de su hogar.</p>
                                         </>
                                     )}
                                 </div>
